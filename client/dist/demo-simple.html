@@ -25,7 +25,7 @@
                         <button onclick="showPage('predictions')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">🎯 预测</button>
                     </div>
                 </div>
-                <div class="text-sm text-gray-400">真实数据版</div>
+                <div class="text-sm text-gray-400">演示模式</div>
             </div>
         </div>
     </nav>
@@ -55,8 +55,8 @@
                     <tbody id="crypto-table"></tbody>
                 </table>
             </div>
-            <div class="mt-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
-                <p class="text-sm text-green-300">✅ <strong>真实数据：</strong>价格数据来自 CoinGecko API，每30秒自动更新</p>
+            <div class="mt-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <p class="text-sm text-blue-300">💡 <strong>演示模式：</strong>价格数据为模拟数据，每3秒自动更新</p>
             </div>
         </div>
 
@@ -279,12 +279,16 @@
     </main>
 
     <script>
-        // API配置
-        const COINGECKO_API = 'https://api.coingecko.com/api/v3';
-        const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data/v2';
-        
-        // 数据存储
-        let cryptoData = [];
+        // 模拟数据
+        let cryptoData = [
+            { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', price: 43250.50, change: 2.45, marketCap: 845, volume: 28.5, high24h: 43800, low24h: 42100 },
+            { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', price: 2280.30, change: -1.23, marketCap: 274, volume: 15.2, high24h: 2350, low24h: 2250 },
+            { id: 'tether', symbol: 'USDT', name: 'Tether', price: 1.00, change: 0.01, marketCap: 91.5, volume: 45.8, high24h: 1.001, low24h: 0.999 },
+            { id: 'binancecoin', symbol: 'BNB', name: 'BNB', price: 315.80, change: 3.67, marketCap: 48.5, volume: 1.2, high24h: 320, low24h: 305 },
+            { id: 'solana', symbol: 'SOL', name: 'Solana', price: 98.45, change: 5.12, marketCap: 42, volume: 2.8, high24h: 102, low24h: 94 },
+            { id: 'ripple', symbol: 'XRP', name: 'XRP', price: 0.62, change: -0.85, marketCap: 33.5, volume: 1.5, high24h: 0.65, low24h: 0.60 },
+            { id: 'cardano', symbol: 'ADA', name: 'Cardano', price: 0.58, change: 1.92, marketCap: 20.4, volume: 0.8, high24h: 0.60, low24h: 0.56 },
+        ];
 
         let economicData = [
             { id: 1, country: '🇺🇸 美国', event: '非农就业数据', date: '12月8日', time: '21:30', importance: 5, status: 'upcoming', previous: '15万', forecast: '18万', actual: '' },
@@ -309,71 +313,12 @@
             weeklyContributions: []  // 本周贡献记录
         };
 
-        let newsData = [];
-        let currentNewsFilter = '';
-        
-        // 中文关键词映射
-        const translateKeywords = {
-            'Bitcoin': '比特币', 'BTC': '比特币',
-            'Ethereum': '以太坊', 'ETH': '以太坊',
-            'cryptocurrency': '加密货币', 'crypto': '加密货币',
-            'blockchain': '区块链', 'price': '价格',
-            'market': '市场', 'trading': '交易',
-            'bull': '牛市', 'bear': '熊市',
-            'surge': '飙升', 'crash': '暴跌',
-            'rally': '反弹', 'drop': '下跌'
-        };
-        
-        // 翻译函数
-        function translateText(text) {
-            let translated = text;
-            for (const [en, cn] of Object.entries(translateKeywords)) {
-                const regex = new RegExp(en, 'gi');
-                translated = translated.replace(regex, cn);
-            }
-            return translated;
-        }
-        
-        // 分析情绪
-        function analyzeSentiment(text) {
-            const bullish = ['surge', 'rally', 'bull', 'rise', 'gain', 'high', 'up', 'growth'];
-            const bearish = ['crash', 'drop', 'bear', 'fall', 'decline', 'down', 'loss', 'low'];
-            const lower = text.toLowerCase();
-            const bullCount = bullish.filter(w => lower.includes(w)).length;
-            const bearCount = bearish.filter(w => lower.includes(w)).length;
-            return bullCount > bearCount ? 'bullish' : bearCount > bullCount ? 'bearish' : 'neutral';
-        }
-        
-        // 加载真实新闻
-        async function loadNews() {
-            try {
-                const response = await fetch(`${CRYPTOCOMPARE_API}/news/?lang=EN`);
-                if (!response.ok) throw new Error('Failed to fetch');
-                
-                const data = await response.json();
-                newsData = data.Data.slice(0, 20).map((news, i) => ({
-                    id: news.id,
-                    title: translateText(news.title),
-                    content: translateText(news.body).substring(0, 150),
-                    category: i < 3 ? 'breaking' : i < 8 ? 'important' : 'realtime',
-                    sentiment: analyzeSentiment(news.title + ' ' + news.body),
-                    source: news.source,
-                    time: getTimeAgo(news.published_on),
-                    views: Math.floor(Math.random() * 3000) + 500
-                }));
-                renderNews(currentNewsFilter);
-            } catch (error) {
-                console.error('Error loading news:', error);
-            }
-        }
-        
-        function getTimeAgo(timestamp) {
-            const diff = Date.now() - timestamp * 1000;
-            const hours = Math.floor(diff / 3600000);
-            if (hours < 1) return '刚刚';
-            if (hours < 24) return `${hours}小时前`;
-            return `${Math.floor(hours / 24)}天前`;
-        }
+        let newsData = [
+            { id: 1, title: 'Bitcoin突破43000美元大关，创两个月新高', content: '比特币价格在今日凌晨突破43000美元，市场情绪高涨。', category: 'breaking', sentiment: 'bullish', source: '加密财经', time: '1小时前', views: 1523 },
+            { id: 2, title: '以太坊2.0质押量突破3200万ETH', content: '以太坊网络质押量持续增长，显示投资者信心。', category: 'important', sentiment: 'bullish', source: 'ETH News', time: '2小时前', views: 892 },
+            { id: 3, title: '美国SEC推迟比特币ETF审批决定', content: 'SEC再次推迟对多个比特币现货ETF的审批决定。', category: 'important', sentiment: 'bearish', source: '华尔街日报', time: '3小时前', views: 2341 },
+            { id: 4, title: 'Solana生态DeFi锁仓量创历史新高', content: 'Solana链上DeFi协议总锁仓量突破40亿美元。', category: 'realtime', sentiment: 'bullish', source: 'DeFi Pulse', time: '4小时前', views: 654 },
+        ];
 
         let posts = [
             { id: 1, user: '加密老韭菜', content: '刚刚抄底了一些ETH，感觉2300是个不错的入场点位。大家怎么看？', likes: 3, comments: 2, time: '1小时前' },
@@ -430,38 +375,6 @@
             document.getElementById(page + '-page').classList.remove('hidden');
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-600'));
             event.target.classList.add('bg-blue-600');
-            
-            // 切换到新闻页面时加载数据
-            if (page === 'news' && newsData.length === 0) {
-                loadNews();
-            }
-        }
-
-        // 加载真实加密货币数据
-        async function loadCryptoPrices() {
-            try {
-                const response = await fetch(
-                    `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`
-                );
-                
-                if (!response.ok) throw new Error('Failed to fetch');
-                
-                const data = await response.json();
-                cryptoData = data.map(coin => ({
-                    id: coin.id,
-                    symbol: coin.symbol.toUpperCase(),
-                    name: coin.name,
-                    price: coin.current_price,
-                    change: coin.price_change_percentage_24h,
-                    marketCap: coin.market_cap / 1e9,
-                    volume: coin.total_volume / 1e9,
-                    high24h: coin.high_24h,
-                    low24h: coin.low_24h
-                }));
-                renderCrypto();
-            } catch (error) {
-                console.error('Error loading crypto prices:', error);
-            }
         }
 
         // 渲染行情表格
@@ -521,14 +434,18 @@
             return gradients[symbol] || 'from-gray-500 to-gray-600';
         }
 
-        // 自动刷新价格（每30秒）
+        // 更新价格
         setInterval(() => {
-            loadCryptoPrices();
-        }, 30000);
+            cryptoData = cryptoData.map(coin => ({
+                ...coin,
+                price: coin.price * (1 + (Math.random() - 0.5) * 0.002),
+                change: coin.change + (Math.random() - 0.5) * 0.1
+            }));
+            renderCrypto();
+        }, 3000);
 
         // 渲染新闻
         function renderNews(filter = '') {
-            currentNewsFilter = filter;
             const filtered = filter ? newsData.filter(n => n.category === filter) : newsData;
             const sentimentColors = { bullish: 'bg-green-500', bearish: 'bg-red-500', neutral: 'bg-gray-500' };
             const sentimentText = { bullish: '利多 📈', bearish: '利空 📉', neutral: '中性' };
@@ -554,11 +471,7 @@
         }
 
         function filterNews(category) {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('bg-blue-600');
-                btn.classList.add('bg-gray-700');
-            });
-            event.target.classList.remove('bg-gray-700');
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('bg-blue-600'));
             event.target.classList.add('bg-blue-600');
             renderNews(category);
         }
@@ -998,8 +911,8 @@
         }
 
         // 初始化
-        loadCryptoPrices();  // 加载真实价格数据
-        loadNews();          // 加载真实新闻数据
+        renderCrypto();
+        renderNews();
         renderPosts();
         renderPredictions();
         renderEconomicCalendar();
