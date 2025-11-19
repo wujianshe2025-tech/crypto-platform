@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 
 export default function App() {
   useEffect(() => {
-    // 自动跳转到完整演示版
-    window.location.href = '/demo.html';
+    // 跳转到真实数据版本
+    window.location.href = '/index.html';
   }, []);
 
   return (
@@ -11,13 +11,8 @@ export default function App() {
       <div className="text-center">
         <div className="text-6xl mb-4">🌪️</div>
         <h1 className="text-3xl font-bold mb-4">追风观测</h1>
-        <p className="text-gray-400 mb-6">正在跳转到完整版...</p>
-        <a 
-          href="/demo.html" 
-          className="inline-block px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700"
-        >
-          点击这里手动跳转 →
-        </a>
+        <p className="text-gray-400 mb-6">正在加载真实数据...</p>
+        <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
       </div>
     </div>
   );
