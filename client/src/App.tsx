@@ -1,22 +1,27 @@
+import { useEffect } from 'react';
+
 export default function App() {
+  useEffect(() => {
+    // 自动跳转到完整演示版
+    window.location.href = '/demo.html';
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
-      <nav className="bg-gray-800 border-b border-gray-700">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <div className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text" style={{backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'}}>
-              🌪️ 追风观测
-            </div>
-            <div className="flex space-x-4">
-              <a href="#" className="px-4 py-2 rounded bg-blue-600">📊 行情</a>
-              <a href="#" className="px-4 py-2 rounded hover:bg-gray-700">📰 新闻</a>
-              <a href="#" className="px-4 py-2 rounded hover:bg-gray-700">📅 数据日历</a>
-              <a href="#" className="px-4 py-2 rounded hover:bg-gray-700">💬 社区</a>
-              <a href="#" className="px-4 py-2 rounded hover:bg-gray-700">🎯 预测</a>
-            </div>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="text-6xl mb-4">🌪️</div>
+        <h1 className="text-3xl font-bold mb-4">追风观测</h1>
+        <p className="text-gray-400 mb-6">正在跳转到完整版...</p>
+        <a 
+          href="/demo.html" 
+          className="inline-block px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700"
+        >
+          点击这里手动跳转 →
+        </a>
+      </div>
+    </div>
+  );
+}
 
       <main className="container mx-auto px-4 py-8">
         <div className="text-center py-20">
