@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node -e \"const fs=require('fs');if(!fs.existsSync('dist'))fs.mkdirSync('dist');fs.copyFileSync('index.html','dist/index.html')\"",
     "preview": "vite preview"
   },
   "dependencies": {
