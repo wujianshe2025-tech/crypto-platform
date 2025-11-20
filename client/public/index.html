@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>追风观测 - 加密货币行情与预测平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <nav class="bg-gray-800 border-b border-gray-700">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-8">
+                    <div class="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text" style="background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🌪️ 追风观测</div>
+                    <div class="flex space-x-1">
+                        <button onclick="showPage('market')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">📊 行情</button>
+                        <button onclick="showPage('news')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">📰 新闻</button>
+                        <button onclick="showPage('calendar')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">📅 数据日历</button>
+                        <button onclick="showPage('community')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">💬 社区</button>
+                        <button onclick="showPage('predictions')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">🎯 预测</button>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-400">真实数据版</div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- 行情页面 -->
+        <div id="market-page" class="page">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-bold">实时行情</h1>
+                <div class="flex items-center space-x-2 text-sm text-gray-400">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                    <span>实时更新中</span>
+                </div>
+            </div>
+            <div class="bg-gray-800 rounded-lg overflow-hidden shadow-xl">
+                <table class="w-full">
+                    <thead class="bg-gradient-to-r from-gray-700 to-gray-800">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">币种</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">最新价格</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">24h涨跌</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">市值</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">成交量</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">24h最高/最低</th>
+                        </tr>
+                    </thead>
+                    <tbody id="crypto-table"></tbody>
+                </table>
+            </div>
+            <div class="mt-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
+                <p class="text-sm text-green-300">✅ <strong>真实数据：</strong>价格数据来自 CoinGecko API，每30秒自动更新</p>
+            </div>
+        </div>
+
+        <!-- 新闻页面 -->
+        <div id="news-page" class="page hidden">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-3xl font-bold">新闻资讯</h1>
+                <div class="flex space-x-2">
+                    <button onclick="filterNews('')" class="filter-btn px-4 py-2 rounded bg-blue-600">全部</button>
+                    <button onclick="filterNews('realtime')" class="filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">实时新闻</button>
+                    <button onclick="filterNews('important')" class="filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">重要事件</button>
+                    <button onclick="filterNews('breaking')" class="filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">突发事件</button>
+                </div>
+            </div>
+            <div id="news-list" class="space-y-4"></div>
+        </div>
+
+        <!-- 数据日历页面 -->
+        <div id="calendar-page" class="page hidden">
+            <h1 class="text-3xl font-bold mb-8">📅 经济数据日历</h1>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 本周数据 -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <span class="text-blue-400 mr-2">📊</span> 本周重要数据
+                    </h2>
+                    <div id="week-data" class="space-y-3"></div>
+                </div>
+                
+                <!-- 下周数据 -->
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <span class="text-purple-400 mr-2">📈</span> 下周待公布
+                    </h2>
+                    <div id="next-week-data" class="space-y-3"></div>
+                </div>
+            </div>
+            
+            <!-- 月度日历 -->
+            <div class="mt-8 bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-semibold mb-4">本月数据日历</h2>
+                <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
+            </div>
+        </div>
+
+        <!-- 社区页面 -->
+        <div id="community-page" class="page hidden">
+            <h1 class="text-3xl font-bold mb-8">社区论坛</h1>
+            <div class="bg-gray-800 rounded-lg p-6 mb-8">
+                <textarea id="new-post" placeholder="分享你的观点..." class="w-full bg-gray-700 rounded-lg p-4 text-white resize-none" rows="4"></textarea>
+                <div class="flex justify-end mt-4">
+                    <button onclick="createPost()" class="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700">发布</button>
+                </div>
+            </div>
+            <div id="posts-list" class="space-y-6"></div>
+        </div>
+
+        <!-- 预测页面 -->
+        <div id="predictions-page" class="page hidden">
+            <div class="flex items-center justify-between mb-8">
+                <div>
+                    <h1 class="text-3xl font-bold mb-2">预测投票</h1>
+                    <p class="text-gray-400 text-sm">参与预测，赢取奖励 🎯</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="member-status" class="text-sm">
+                        ${isMember ? 
+                            '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>' : 
+                            '<button onclick="showMembershipModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold">成为会员</button>'
+                        }
+                    </div>
+                    <button onclick="toggleCreatePrediction()" class="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg hover:from-green-700 hover:to-teal-700 font-semibold shadow-lg">+ 发起预测</button>
+                </div>
+            </div>
+            
+            <!-- 会员提示 -->
+            <div id="member-notice" class="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/50 rounded-lg p-4 mb-6">
+                <div class="flex items-center space-x-3">
+                    <span class="text-3xl">👑</span>
+                    <div class="flex-1">
+                        <div class="font-semibold text-yellow-400 mb-1">会员专享功能</div>
+                        <div class="text-sm text-gray-300">仅需 1 USDT 即可成为会员，解锁发起预测和参与投票功能，预测准确还能获得加密货币奖励！</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 平台激励基金 -->
+            <div class="bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/50 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-3xl">🏆</span>
+                        <div>
+                            <div class="font-semibold text-purple-400 mb-1">平台激励基金</div>
+                            <div class="text-sm text-gray-300">每周发放给活跃贡献用户</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-purple-400" id="platform-fund">0 USDT</div>
+                        <div class="text-xs text-gray-400">下次发放：周日</div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="create-prediction" class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 mb-8 hidden border border-gray-700 shadow-xl">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <span class="text-2xl mr-2">🎯</span> 创建新预测
+                </h2>
+                
+                <!-- 今日发起统计 -->
+                <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 mb-4 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300">今日已发起：</span>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-green-400">有奖 ${userStats.rewardPredictionsToday}/1</span>
+                            <span class="text-blue-400">无奖 ${userStats.freePredictionsToday}/10</span>
+                        </div>
+                    </div>
+                </div>
+
+                <input id="pred-title" type="text" placeholder="预测标题" class="w-full bg-gray-700 rounded-lg p-3 text-white mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <textarea id="pred-desc" placeholder="预测描述（可选）" class="w-full bg-gray-700 rounded-lg p-3 text-white resize-none mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="3"></textarea>
+                
+                <!-- 奖金设置 -->
+                <div class="bg-gray-700 rounded-lg p-4 mb-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <label class="font-semibold">预测类型</label>
+                        <div class="flex items-center space-x-2">
+                            <button id="reward-toggle" onclick="toggleRewardType()" class="px-4 py-2 bg-green-600 rounded-lg text-sm font-semibold">
+                                💰 有奖预测
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="reward-settings" class="space-y-3">
+                        <div>
+                            <label class="text-sm text-gray-400 mb-2 block">每人投注金额（USDT）</label>
+                            <div class="flex space-x-2">
+                                <button onclick="setRewardAmount(1)" class="reward-btn flex-1 px-4 py-2 bg-gray-600 rounded hover:bg-blue-600 transition">1</button>
+                                <button onclick="setRewardAmount(2)" class="reward-btn flex-1 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition">2</button>
+                                <button onclick="setRewardAmount(3)" class="reward-btn flex-1 px-4 py-2 bg-gray-600 rounded hover:bg-blue-600 transition">3</button>
+                                <button onclick="setRewardAmount(4)" class="reward-btn flex-1 px-4 py-2 bg-gray-600 rounded hover:bg-blue-600 transition">4</button>
+                                <button onclick="setRewardAmount(5)" class="reward-btn flex-1 px-4 py-2 bg-gray-600 rounded hover:bg-blue-600 transition">5</button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gray-800 rounded p-3 text-xs space-y-1">
+                            <div class="flex justify-between text-gray-400">
+                                <span>奖金分配规则：</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">• 胜出方获得</span>
+                                <span class="text-green-400 font-semibold">90%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">• 发起者获得</span>
+                                <span class="text-yellow-400 font-semibold">1%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">• 平台激励基金</span>
+                                <span class="text-blue-400 font-semibold">4%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-400">• 平台运营费</span>
+                                <span class="text-purple-400 font-semibold">5%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-3">
+                    <button onclick="createPrediction()" class="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold shadow-lg">创建预测</button>
+                    <button onclick="toggleCreatePrediction()" class="px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600">取消</button>
+                </div>
+            </div>
+            <div id="predictions-list" class="space-y-6"></div>
+        </div>
+
+        <!-- 会员弹窗 -->
+        <div id="membership-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="display: none;">
+            <div class="bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-700">
+                <div class="text-center mb-6">
+                    <div class="text-6xl mb-4">👑</div>
+                    <h2 class="text-2xl font-bold mb-2">成为会员</h2>
+                    <p class="text-gray-400">解锁全部功能，开启预测之旅</p>
+                </div>
+                
+                <div class="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-6 mb-6 border border-yellow-500/30">
+                    <div class="text-center mb-4">
+                        <div class="text-4xl font-bold text-yellow-400 mb-2">1 USDT</div>
+                        <div class="text-sm text-gray-400">一次性付费，永久会员</div>
+                    </div>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-green-400">✓</span>
+                            <span>发起预测投票</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-green-400">✓</span>
+                            <span>参与所有预测</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-green-400">✓</span>
+                            <span>预测准确获得奖励</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-green-400">✓</span>
+                            <span>专属会员标识</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="becomeMember()" class="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg hover:from-yellow-600 hover:to-orange-600 font-semibold text-white shadow-lg mb-3">
+                    立即支付 1 USDT
+                </button>
+                <button onclick="closeMembershipModal()" class="w-full px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600">
+                    稍后再说
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // API配置
+        const COINGECKO_API = 'https://api.coingecko.com/api/v3';
+        const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data/v2';
+        
+        // 数据存储
+        let cryptoData = [];
+
+        let economicData = [
+            { id: 1, country: '🇺🇸 美国', event: '非农就业数据', date: '12月8日', time: '21:30', importance: 5, status: 'upcoming', previous: '15万', forecast: '18万', actual: '' },
+            { id: 2, country: '🇺🇸 美国', event: 'CPI通胀数据', date: '12月12日', time: '21:30', importance: 5, status: 'upcoming', previous: '3.2%', forecast: '3.1%', actual: '' },
+            { id: 3, country: '🇺🇸 美国', event: '联储利率决议', date: '12月14日', time: '03:00', importance: 5, status: 'upcoming', previous: '5.5%', forecast: '5.5%', actual: '' },
+            { id: 4, country: '🇪🇺 欧元区', event: 'GDP数据', date: '12月7日', time: '18:00', importance: 4, status: 'published', previous: '0.1%', forecast: '0.2%', actual: '0.1%' },
+            { id: 5, country: '🇨🇳 中国', event: 'CPI数据', date: '12月9日', time: '09:30', importance: 4, status: 'upcoming', previous: '0.2%', forecast: '0.3%', actual: '' },
+            { id: 6, country: '🇯🇵 日本', event: '央行利率决议', date: '12月19日', time: '11:00', importance: 4, status: 'upcoming', previous: '-0.1%', forecast: '-0.1%', actual: '' },
+            { id: 7, country: '🇬🇧 英国', event: '失业率', date: '12月13日', time: '15:00', importance: 3, status: 'upcoming', previous: '4.2%', forecast: '4.3%', actual: '' },
+            { id: 8, country: '🇨🇦 加拿大', event: '就业数据', date: '12月8日', time: '21:30', importance: 3, status: 'upcoming', previous: '1.8万', forecast: '2.0万', actual: '' },
+        ];
+
+        let isLoggedIn = false;
+        let isMember = false;
+        
+        // 用户每日发起限制
+        let userStats = {
+            rewardPredictionsToday: 0,  // 今天发起的有奖预测数
+            freePredictionsToday: 0,     // 今天发起的无奖预测数
+            lastResetDate: new Date().toDateString(),  // 上次重置日期
+            platformFund: 0,  // 平台累计激励基金
+            weeklyContributions: []  // 本周贡献记录
+        };
+
+        let newsData = [];
+        let currentNewsFilter = '';
+        
+        // 中文关键词映射
+        const translateKeywords = {
+            'Bitcoin': '比特币', 'BTC': '比特币',
+            'Ethereum': '以太坊', 'ETH': '以太坊',
+            'cryptocurrency': '加密货币', 'crypto': '加密货币',
+            'blockchain': '区块链', 'price': '价格',
+            'market': '市场', 'trading': '交易',
+            'bull': '牛市', 'bear': '熊市',
+            'surge': '飙升', 'crash': '暴跌',
+            'rally': '反弹', 'drop': '下跌'
+        };
+        
+        // 翻译函数
+        function translateText(text) {
+            let translated = text;
+            for (const [en, cn] of Object.entries(translateKeywords)) {
+                const regex = new RegExp(en, 'gi');
+                translated = translated.replace(regex, cn);
+            }
+            return translated;
+        }
+        
+        // 分析情绪
+        function analyzeSentiment(text) {
+            const bullish = ['surge', 'rally', 'bull', 'rise', 'gain', 'high', 'up', 'growth'];
+            const bearish = ['crash', 'drop', 'bear', 'fall', 'decline', 'down', 'loss', 'low'];
+            const lower = text.toLowerCase();
+            const bullCount = bullish.filter(w => lower.includes(w)).length;
+            const bearCount = bearish.filter(w => lower.includes(w)).length;
+            return bullCount > bearCount ? 'bullish' : bearCount > bullCount ? 'bearish' : 'neutral';
+        }
+        
+        // 加载真实新闻
+        async function loadNews() {
+            try {
+                const response = await fetch(`${CRYPTOCOMPARE_API}/news/?lang=EN`);
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const data = await response.json();
+                newsData = data.Data.slice(0, 20).map((news, i) => ({
+                    id: news.id,
+                    title: translateText(news.title),
+                    content: translateText(news.body).substring(0, 150),
+                    category: i < 3 ? 'breaking' : i < 8 ? 'important' : 'realtime',
+                    sentiment: analyzeSentiment(news.title + ' ' + news.body),
+                    source: news.source,
+                    time: getTimeAgo(news.published_on),
+                    views: Math.floor(Math.random() * 3000) + 500
+                }));
+                renderNews(currentNewsFilter);
+            } catch (error) {
+                console.error('Error loading news:', error);
+            }
+        }
+        
+        function getTimeAgo(timestamp) {
+            const diff = Date.now() - timestamp * 1000;
+            const hours = Math.floor(diff / 3600000);
+            if (hours < 1) return '刚刚';
+            if (hours < 24) return `${hours}小时前`;
+            return `${Math.floor(hours / 24)}天前`;
+        }
+
+        let posts = [
+            { id: 1, user: '加密老韭菜', content: '刚刚抄底了一些ETH，感觉2300是个不错的入场点位。大家怎么看？', likes: 3, comments: 2, time: '1小时前' },
+            { id: 2, user: 'DeFi玩家', content: '最近在研究Solana上的新项目，收益率真的很香！', likes: 2, comments: 1, time: '2小时前' },
+        ];
+
+        let predictions = [
+            { 
+                id: 1, 
+                creator: '预测大师', 
+                title: 'BTC在2024年1月底能否突破50000美元？', 
+                desc: '根据当前市场走势预测', 
+                options: [{text: '能突破', votes: 5}, {text: '不能突破', votes: 2}], 
+                hasReward: true,
+                rewardPerPerson: 2,  // 每人2 USDT
+                totalPool: 14,  // 7人参与 * 2 USDT
+                creatorReward: 0.14,  // 1%
+                platformFee: 0.56,  // 4%
+                winnerPool: 12.6,  // 90%
+                deadline: '30天',
+                status: 'active'
+            },
+            { 
+                id: 2, 
+                creator: '市场观察者', 
+                title: '美联储下次会议会降息吗？', 
+                desc: '预测货币政策影响', 
+                options: [{text: '会降息', votes: 6}, {text: '维持不变', votes: 3}, {text: '会加息', votes: 1}], 
+                hasReward: true,
+                rewardPerPerson: 3,  // 每人3 USDT
+                totalPool: 30,  // 10人参与 * 3 USDT
+                creatorReward: 0.3,  // 1%
+                platformFee: 1.2,  // 4%
+                winnerPool: 27,  // 90%
+                deadline: '15天',
+                status: 'active'
+            },
+            { 
+                id: 3, 
+                creator: '币圈分析师', 
+                title: 'ETH本周能否突破2500美元？', 
+                desc: '以太坊技术面分析', 
+                options: [{text: '能突破', votes: 8}, {text: '不能突破', votes: 4}], 
+                hasReward: false,  // 无奖预测
+                totalPool: 0,
+                deadline: '7天',
+                status: 'active'
+            },
+        ];
+
+        // 页面切换
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+            document.getElementById(page + '-page').classList.remove('hidden');
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-600'));
+            event.target.classList.add('bg-blue-600');
+            
+            // 切换到新闻页面时加载数据
+            if (page === 'news' && newsData.length === 0) {
+                loadNews();
+            }
+        }
+
+        // 加载真实加密货币数据
+        async function loadCryptoPrices() {
+            try {
+                const response = await fetch(
+                    `${COINGECKO_API}/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h`
+                );
+                
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const data = await response.json();
+                cryptoData = data.map(coin => ({
+                    id: coin.id,
+                    symbol: coin.symbol.toUpperCase(),
+                    name: coin.name,
+                    price: coin.current_price,
+                    change: coin.price_change_percentage_24h,
+                    marketCap: coin.market_cap / 1e9,
+                    volume: coin.total_volume / 1e9,
+                    high24h: coin.high_24h,
+                    low24h: coin.low_24h
+                }));
+                renderCrypto();
+            } catch (error) {
+                console.error('Error loading crypto prices:', error);
+            }
+        }
+
+        // 渲染行情表格
+        function renderCrypto() {
+            const tbody = document.getElementById('crypto-table');
+            tbody.innerHTML = cryptoData.map((coin, i) => `
+                <tr class="border-t border-gray-700 hover:bg-gray-750 transition cursor-pointer">
+                    <td class="px-6 py-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-gray-400 font-medium">#${i+1}</span>
+                            <div class="w-8 h-8 rounded-full bg-gradient-to-br ${getGradient(coin.symbol)} flex items-center justify-center text-white font-bold text-sm">
+                                ${coin.symbol[0]}
+                            </div>
+                            <div>
+                                <div class="font-semibold">${coin.name}</div>
+                                <div class="text-xs text-gray-400">${coin.symbol}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="font-mono font-semibold text-lg">$${coin.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                        <div class="text-xs text-gray-400">≈ ¥${(coin.price * 7.2).toFixed(2)}</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="inline-flex items-center px-2 py-1 rounded ${coin.change >= 0 ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'}">
+                            <span class="font-semibold">${coin.change >= 0 ? '▲' : '▼'} ${Math.abs(coin.change).toFixed(2)}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="text-gray-300">$${coin.marketCap}B</div>
+                        <div class="text-xs text-gray-500">市值</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="text-gray-300">$${coin.volume}B</div>
+                        <div class="text-xs text-gray-500">24h成交量</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="text-xs text-gray-400">
+                            <div>高: <span class="text-green-400">$${coin.high24h.toLocaleString()}</span></div>
+                            <div>低: <span class="text-red-400">$${coin.low24h.toLocaleString()}</span></div>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function getGradient(symbol) {
+            const gradients = {
+                'BTC': 'from-orange-500 to-yellow-600',
+                'ETH': 'from-blue-500 to-purple-600',
+                'USDT': 'from-green-500 to-teal-600',
+                'BNB': 'from-yellow-500 to-orange-600',
+                'SOL': 'from-purple-500 to-pink-600',
+                'XRP': 'from-blue-400 to-cyan-500',
+                'ADA': 'from-blue-600 to-indigo-700'
+            };
+            return gradients[symbol] || 'from-gray-500 to-gray-600';
+        }
+
+        // 自动刷新价格（每30秒）
+        setInterval(() => {
+            loadCryptoPrices();
+        }, 30000);
+
+        // 渲染新闻
+        function renderNews(filter = '') {
+            currentNewsFilter = filter;
+            const filtered = filter ? newsData.filter(n => n.category === filter) : newsData;
+            const sentimentColors = { bullish: 'bg-green-500', bearish: 'bg-red-500', neutral: 'bg-gray-500' };
+            const sentimentText = { bullish: '利多 📈', bearish: '利空 📉', neutral: '中性' };
+            const categoryText = { realtime: '实时新闻', important: '重要事件', breaking: '突发事件' };
+            
+            document.getElementById('news-list').innerHTML = filtered.map(news => `
+                <div class="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 cursor-pointer">
+                    <div class="flex items-start justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <span class="px-3 py-1 bg-blue-600 rounded text-sm">${categoryText[news.category]}</span>
+                            <span class="px-3 py-1 rounded text-sm ${sentimentColors[news.sentiment]}">${sentimentText[news.sentiment]}</span>
+                        </div>
+                        <span class="text-gray-400 text-sm">${news.time}</span>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">${news.title}</h3>
+                    <p class="text-gray-300 mb-3">${news.content}</p>
+                    <div class="flex items-center justify-between text-sm text-gray-400">
+                        <span>来源: ${news.source}</span>
+                        <span>👁️ ${news.views.toLocaleString()} 阅读</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterNews(category) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            });
+            event.target.classList.remove('bg-gray-700');
+            event.target.classList.add('bg-blue-600');
+            renderNews(category);
+        }
+
+        // 渲染经济数据日历
+        function renderEconomicCalendar() {
+            const thisWeek = economicData.filter(d => ['12月7日', '12月8日', '12月9日'].includes(d.date));
+            const nextWeek = economicData.filter(d => ['12月12日', '12月13日', '12月14日', '12月19日'].includes(d.date));
+            
+            document.getElementById('week-data').innerHTML = thisWeek.map(data => `
+                <div class="bg-gray-700 rounded-lg p-4 ${data.status === 'published' ? 'border-l-4 border-green-500' : 'border-l-4 border-blue-500'}">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="text-lg">${data.country}</span>
+                                <span class="text-yellow-400">${'⭐'.repeat(data.importance)}</span>
+                            </div>
+                            <div class="font-semibold text-white">${data.event}</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-semibold ${data.status === 'published' ? 'text-green-400' : 'text-blue-400'}">
+                                ${data.status === 'published' ? '✓ 已公布' : '待公布'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-400 mt-3">
+                        <span>📅 ${data.date} ${data.time}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+                        <div class="bg-gray-800 rounded p-2">
+                            <div class="text-gray-500">前值</div>
+                            <div class="text-white font-semibold">${data.previous}</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-2">
+                            <div class="text-gray-500">预测</div>
+                            <div class="text-yellow-400 font-semibold">${data.forecast}</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-2">
+                            <div class="text-gray-500">实际</div>
+                            <div class="${data.actual ? 'text-green-400' : 'text-gray-600'} font-semibold">
+                                ${data.actual || '--'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('next-week-data').innerHTML = nextWeek.map(data => `
+                <div class="bg-gray-700 rounded-lg p-4 border-l-4 border-purple-500">
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="text-lg">${data.country}</span>
+                                <span class="text-yellow-400">${'⭐'.repeat(data.importance)}</span>
+                            </div>
+                            <div class="font-semibold text-white">${data.event}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-sm text-gray-400 mt-3">
+                        <span>📅 ${data.date} ${data.time}</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                        <div class="bg-gray-800 rounded p-2">
+                            <div class="text-gray-500">前值</div>
+                            <div class="text-white font-semibold">${data.previous}</div>
+                        </div>
+                        <div class="bg-gray-800 rounded p-2">
+                            <div class="text-gray-500">预测</div>
+                            <div class="text-yellow-400 font-semibold">${data.forecast}</div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            // 渲染月度日历
+            const daysInMonth = 31;
+            const calendarHTML = ['日', '一', '二', '三', '四', '五', '六'].map(day => 
+                `<div class="text-center font-semibold text-gray-400 py-2">${day}</div>`
+            ).join('');
+            
+            let daysHTML = '';
+            for (let i = 1; i <= daysInMonth; i++) {
+                const hasEvent = economicData.some(d => d.date.includes(`${i}日`));
+                const eventImportance = hasEvent ? Math.max(...economicData.filter(d => d.date.includes(`${i}日`)).map(d => d.importance)) : 0;
+                daysHTML += `
+                    <div class="aspect-square bg-gray-700 rounded p-2 text-center ${hasEvent ? 'border-2 border-yellow-500' : ''}">
+                        <div class="text-sm font-semibold">${i}</div>
+                        ${hasEvent ? `<div class="text-xs text-yellow-400 mt-1">${'⭐'.repeat(eventImportance)}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('calendar-grid').innerHTML = calendarHTML + daysHTML;
+        }
+
+        // 渲染帖子
+        function renderPosts() {
+            document.getElementById('posts-list').innerHTML = posts.map(post => `
+                <div class="bg-gray-800 rounded-lg p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold">
+                            ${post.user[0]}
+                        </div>
+                        <div class="ml-3">
+                            <div class="font-semibold">${post.user}</div>
+                            <div class="text-sm text-gray-400">${post.time}</div>
+                        </div>
+                    </div>
+                    <p class="text-gray-200 mb-4">${post.content}</p>
+                    <div class="flex items-center space-x-6 text-gray-400 border-t border-gray-700 pt-4">
+                        <button class="flex items-center space-x-2 hover:text-blue-400">
+                            <span>👍</span><span>${post.likes}</span>
+                        </button>
+                        <button class="flex items-center space-x-2 hover:text-blue-400">
+                            <span>💬</span><span>${post.comments}</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function createPost() {
+            const content = document.getElementById('new-post').value;
+            if (!content.trim()) return;
+            posts.unshift({ id: Date.now(), user: '我', content, likes: 0, comments: 0, time: '刚刚' });
+            document.getElementById('new-post').value = '';
+            renderPosts();
+        }
+
+        // 当前选择的奖金金额
+        let selectedRewardAmount = 2;
+        let isRewardPrediction = true;
+
+        function toggleRewardType() {
+            isRewardPrediction = !isRewardPrediction;
+            const btn = document.getElementById('reward-toggle');
+            const settings = document.getElementById('reward-settings');
+            
+            if (isRewardPrediction) {
+                btn.textContent = '💰 有奖预测';
+                btn.className = 'px-4 py-2 bg-green-600 rounded-lg text-sm font-semibold';
+                settings.style.display = 'block';
+            } else {
+                btn.textContent = '🎯 无奖预测';
+                btn.className = 'px-4 py-2 bg-gray-600 rounded-lg text-sm font-semibold';
+                settings.style.display = 'none';
+            }
+        }
+
+        function setRewardAmount(amount) {
+            selectedRewardAmount = amount;
+            document.querySelectorAll('.reward-btn').forEach((btn, i) => {
+                if (i + 1 === amount) {
+                    btn.className = 'reward-btn flex-1 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 transition';
+                } else {
+                    btn.className = 'reward-btn flex-1 px-4 py-2 bg-gray-600 rounded hover:bg-blue-600 transition';
+                }
+            });
+        }
+
+        // 检查并重置每日限制
+        function checkDailyReset() {
+            const today = new Date().toDateString();
+            if (userStats.lastResetDate !== today) {
+                userStats.rewardPredictionsToday = 0;
+                userStats.freePredictionsToday = 0;
+                userStats.lastResetDate = today;
+            }
+        }
+
+        // 计算奖金池
+        function calculateRewardPool(totalVotes, rewardPerPerson) {
+            const totalPool = totalVotes * rewardPerPerson;
+            const creatorReward = totalPool * 0.01;  // 1%
+            const platformFee = totalPool * 0.04;    // 4%
+            const operationFee = totalPool * 0.05;   // 5%
+            const winnerPool = totalPool * 0.90;     // 90%
+            
+            return {
+                totalPool,
+                creatorReward,
+                platformFee,
+                operationFee,
+                winnerPool
+            };
+        }
+
+        // 渲染预测
+        function renderPredictions() {
+            document.getElementById('predictions-list').innerHTML = predictions.map(pred => {
+                const total = pred.options.reduce((sum, opt) => sum + opt.votes, 0);
+                const userVoted = pred.options.some(opt => opt.voted);
+                
+                // 动态计算奖金池
+                let poolInfo = { totalPool: 0, winnerPool: 0, creatorReward: 0, platformFee: 0 };
+                if (pred.hasReward) {
+                    poolInfo = calculateRewardPool(total, pred.rewardPerPerson);
+                }
+                
+                return `
+                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 shadow-xl hover:shadow-2xl transition">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="text-2xl">${pred.hasReward ? '💰' : '🎯'}</span>
+                                    <h3 class="text-xl font-bold">${pred.title}</h3>
+                                    ${!pred.hasReward ? '<span class="px-2 py-1 bg-gray-600 rounded text-xs">无奖预测</span>' : ''}
+                                </div>
+                                <p class="text-gray-400 text-sm">${pred.desc}</p>
+                            </div>
+                            <div class="ml-4 text-right">
+                                ${pred.hasReward ? `
+                                    <div class="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-3 mb-2 shadow-lg">
+                                        <div class="text-xs text-green-100 mb-1">总奖池</div>
+                                        <div class="text-xl font-bold text-white">${poolInfo.totalPool.toFixed(1)} USDT</div>
+                                        <div class="text-xs text-green-100 mt-1">${pred.rewardPerPerson} USDT/人 × ${total}人</div>
+                                    </div>
+                                    <div class="bg-gray-700 rounded p-2 text-xs space-y-1">
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">胜出奖励</span>
+                                            <span class="text-green-400 font-semibold">${poolInfo.winnerPool.toFixed(1)}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">发起奖励</span>
+                                            <span class="text-yellow-400 font-semibold">${poolInfo.creatorReward.toFixed(2)}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span class="text-gray-400">激励基金</span>
+                                            <span class="text-blue-400 font-semibold">${poolInfo.platformFee.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                ` : `
+                                    <div class="bg-gray-700 rounded-lg p-3 mb-2">
+                                        <div class="text-sm text-gray-400">无奖金池</div>
+                                        <div class="text-xs text-gray-500 mt-1">纯预测投票</div>
+                                    </div>
+                                `}
+                                <div class="text-xs text-gray-400 flex items-center justify-end space-x-1 mt-2">
+                                    <span>⏰</span>
+                                    <span>${pred.deadline}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-3 mb-4">
+                            ${pred.options.map((opt, i) => {
+                                const pct = total > 0 ? ((opt.votes / total) * 100).toFixed(1) : 0;
+                                return `
+                                    <div class="relative">
+                                        <button 
+                                            onclick="votePrediction(${pred.id}, ${i})" 
+                                            class="w-full bg-gray-700 hover:bg-gray-600 rounded-lg p-4 transition ${opt.voted ? 'ring-2 ring-blue-500' : ''}"
+                                        >
+                                            <div class="flex items-center justify-between mb-2">
+                                                <div class="flex items-center space-x-2">
+                                                    ${opt.voted ? '<span class="text-blue-400">✓</span>' : ''}
+                                                    <span class="font-semibold">${opt.text}</span>
+                                                </div>
+                                                <span class="text-blue-400 font-bold">${pct}%</span>
+                                            </div>
+                                            <div class="w-full bg-gray-600 rounded-full h-3 overflow-hidden">
+                                                <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                                            </div>
+                                            <div class="text-xs text-gray-400 mt-2 flex items-center justify-between">
+                                                <span>${opt.votes} 人投票</span>
+                                                ${!isMember ? '<span class="text-yellow-400">🔒 会员可投票</span>' : 
+                                                  pred.hasReward ? `<span class="text-green-400">💰 ${pred.rewardPerPerson} USDT</span>` : 
+                                                  '<span class="text-blue-400">免费投票</span>'}
+                                            </div>
+                                        </button>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                        ${userVoted ? `
+                            <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-3 mb-4">
+                                <div class="flex items-center justify-between text-sm">
+                                    <div class="flex items-center space-x-2 text-green-400">
+                                        <span>✓</span>
+                                        <span>你已投票！${pred.hasReward ? '预测准确将获得奖励' : ''}</span>
+                                    </div>
+                                    ${pred.hasReward ? `<span class="text-yellow-400 font-semibold">已投入 ${pred.rewardPerPerson} USDT</span>` : ''}
+                                </div>
+                            </div>
+                        ` : ''}
+                        <div class="flex items-center justify-between text-sm text-gray-400 border-t border-gray-700 pt-4">
+                            <div class="flex items-center space-x-4">
+                                <span>👤 ${pred.creator}</span>
+                                <span>📊 ${total} 人参与</span>
+                            </div>
+                            <button class="text-blue-400 hover:text-blue-300">查看详情 →</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function votePrediction(predId, optionIndex) {
+            if (!isMember) {
+                showMembershipModal();
+                return;
+            }
+            
+            const pred = predictions.find(p => p.id === predId);
+            if (!pred) return;
+            
+            // 检查是否已投票
+            const alreadyVoted = pred.options.some(opt => opt.voted);
+            
+            if (pred.hasReward && !alreadyVoted) {
+                const confirm = window.confirm(`💰 投票需要支付 ${pred.rewardPerPerson} USDT\n\n预测准确将获得奖金分成！\n确认投票吗？`);
+                if (!confirm) return;
+            }
+            
+            predictions = predictions.map(p => {
+                if (p.id === predId) {
+                    p.options.forEach((opt, i) => {
+                        opt.voted = false;
+                        if (opt.votes > 0 && opt.userVoted) opt.votes--;
+                    });
+                    p.options[optionIndex].votes++;
+                    p.options[optionIndex].voted = true;
+                    p.options[optionIndex].userVoted = true;
+                    
+                    // 更新奖金池
+                    if (p.hasReward) {
+                        const total = p.options.reduce((sum, opt) => sum + opt.votes, 0);
+                        const poolInfo = calculateRewardPool(total, p.rewardPerPerson);
+                        p.totalPool = poolInfo.totalPool;
+                        p.creatorReward = poolInfo.creatorReward;
+                        p.platformFee = poolInfo.platformFee;
+                        p.winnerPool = poolInfo.winnerPool;
+                        
+                        // 累计平台激励基金
+                        userStats.platformFund += poolInfo.platformFee;
+                    }
+                }
+                return p;
+            });
+            renderPredictions();
+            
+            if (pred.hasReward) {
+                alert(`✅ 投票成功！\n\n已支付：${pred.rewardPerPerson} USDT\n预测准确将获得奖金！`);
+            }
+        }
+
+        function toggleCreatePrediction() {
+            if (!isMember) {
+                showMembershipModal();
+                return;
+            }
+            document.getElementById('create-prediction').classList.toggle('hidden');
+        }
+
+        function createPrediction() {
+            if (!isMember) {
+                showMembershipModal();
+                return;
+            }
+            
+            // 检查每日限制
+            checkDailyReset();
+            
+            if (isRewardPrediction) {
+                if (userStats.rewardPredictionsToday >= 1) {
+                    alert('❌ 每天只能发起1次有奖预测！\n\n你今天已经发起过有奖预测了。\n明天再来吧！');
+                    return;
+                }
+            } else {
+                if (userStats.freePredictionsToday >= 10) {
+                    alert('❌ 每天最多发起10次无奖预测！\n\n你今天已经达到上限了。\n明天再来吧！');
+                    return;
+                }
+            }
+            
+            const title = document.getElementById('pred-title').value;
+            const desc = document.getElementById('pred-desc').value;
+            if (!title.trim()) {
+                alert('请输入预测标题');
+                return;
+            }
+            
+            const newPrediction = {
+                id: Date.now(),
+                creator: '我',
+                title,
+                desc: desc || '无描述',
+                options: [{text: '是', votes: 0, voted: false}, {text: '否', votes: 0, voted: false}],
+                hasReward: isRewardPrediction,
+                rewardPerPerson: isRewardPrediction ? selectedRewardAmount : 0,
+                totalPool: 0,
+                creatorReward: 0,
+                platformFee: 0,
+                winnerPool: 0,
+                deadline: '7天',
+                status: 'active'
+            };
+            
+            predictions.unshift(newPrediction);
+            
+            // 更新统计
+            if (isRewardPrediction) {
+                userStats.rewardPredictionsToday++;
+            } else {
+                userStats.freePredictionsToday++;
+            }
+            
+            document.getElementById('pred-title').value = '';
+            document.getElementById('pred-desc').value = '';
+            toggleCreatePrediction();
+            renderPredictions();
+            
+            alert(`✅ 预测创建成功！\n\n类型：${isRewardPrediction ? '有奖预测' : '无奖预测'}\n${isRewardPrediction ? `每人投注：${selectedRewardAmount} USDT` : ''}\n\n今日剩余：\n• 有奖预测：${1 - userStats.rewardPredictionsToday}次\n• 无奖预测：${10 - userStats.freePredictionsToday}次`);
+        }
+
+        function showMembershipModal() {
+            document.getElementById('membership-modal').style.display = 'flex';
+        }
+
+        function closeMembershipModal() {
+            document.getElementById('membership-modal').style.display = 'none';
+        }
+
+        function becomeMember() {
+            // 模拟支付
+            alert('模拟支付 1 USDT 成功！\n\n恭喜你成为会员！🎉');
+            isMember = true;
+            closeMembershipModal();
+            renderPredictions();
+            // 更新会员状态显示
+            document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
+            document.getElementById('member-notice').style.display = 'none';
+        }
+
+        // 更新平台基金显示
+        function updatePlatformFund() {
+            document.getElementById('platform-fund').textContent = userStats.platformFund.toFixed(2) + ' USDT';
+        }
+
+        // 初始化
+        loadCryptoPrices();  // 加载真实价格数据
+        loadNews();          // 加载真实新闻数据
+        renderPosts();
+        renderPredictions();
+        renderEconomicCalendar();
+        updatePlatformFund();
+        showPage('market');
+        
+        // 点击模态框外部关闭
+        document.getElementById('membership-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeMembershipModal();
+            }
+        });
+    </script>
+</body>
+</html>
