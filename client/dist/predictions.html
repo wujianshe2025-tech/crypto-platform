@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>预测投票 - 追风观测</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+  <div id="app" class="container mx-auto px-4 py-8 max-w-6xl">
+    <!-- 导航栏 -->
+    <nav class="bg-gray-800 rounded-lg p-4 mb-8">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">🌪️ 追风观测</h1>
+        <div id="wallet-status" class="flex items-center gap-3">
+          <button id="connect-wallet-btn" class="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+            连接钱包
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- 主内容 -->
+    <div class="flex items-center justify-between mb-8">
+      <h2 class="text-3xl font-bold">预测投票</h2>
+      <button id="create-btn" class="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+        发起预测
+      </button>
+    </div>
+
+    <!-- 创建预测表单 -->
+    <div id="create-form" class="bg-gray-800 rounded-lg p-6 mb-8 hidden">
+      <h3 class="text-xl font-semibold mb-4">创建新预测</h3>
+      <form id="prediction-form" class="space-y-4">
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">预测标题 *</label>
+          <input type="text" id="title" required
+            placeholder="例如：比特币会涨到10万美元吗？"
+            class="w-full bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">预测描述</label>
+          <textarea id="description" rows="3"
+            placeholder="详细描述预测内容..."
+            class="w-full bg-gray-700 rounded-lg p-3 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">选项 *</label>
+          <div id="options-container" class="space-y-2">
+            <input type="text" class="option-input w-full bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="选项 1" required>
+            <input type="text" class="option-input w-full bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="选项 2" required>
+          </div>
+          <button type="button" id="add-option-btn" class="mt-2 text-blue-400 hover:text-blue-300 text-sm">
+            + 添加选项
+          </button>
+        </div>
+
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="has-reward" class="w-5 h-5">
+            <span>有奖预测（参与者需要投注）</span>
+          </label>
+        </div>
+
+        <div id="reward-amount-container" class="hidden">
+          <label class="block text-sm text-gray-400 mb-2">每人投注金额（USDT）</label>
+          <input type="number" id="reward-amount" min="1" step="1" value="10"
+            class="w-full bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <p class="text-xs text-gray-400 mt-1">
+            预测准确者将按投注比例分配奖池（扣除5%手续费）
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm text-gray-400 mb-2">截止时间 *</label>
+          <input type="datetime-local" id="deadline" required
+            class="w-full bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="flex gap-3">
+          <button type="submit" class="flex-1 px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
+            创建预测
+          </button>
+          <button type="button" id="cancel-create-btn" class="px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600 transition">
+            取消
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- 加载状态 -->
+    <div id="loading" class="text-center py-12">
+      <div class="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p class="text-gray-400">加载中...</p>
+    </div>
+
+    <!-- 预测列表 -->
+    <div id="predictions-list" class="space-y-6"></div>
+
+    <!-- 空状态 -->
+    <div id="empty-state" class="text-center py-12 hidden">
+      <div class="text-6xl mb-4">🎯</div>
+      <h3 class="text-xl font-semibold mb-2">还没有预测</h3>
+      <p class="text-gray-400 mb-6">成为第一个创建预测的人吧！</p>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
+    const PLATFORM_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+    
+    let currentUser = null;
+    let predictions = [];
+
+    // 初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUser();
+      loadPredictions();
+      setupEventListeners();
+    });
+
+    function setupEventListeners() {
+      document.getElementById('connect-wallet-btn').addEventListener('click', connectWallet);
+      document.getElementById('create-btn').addEventListener('click', showCreateForm);
+      document.getElementById('cancel-create-btn').addEventListener('click', hideCreateForm);
+      document.getElementById('prediction-form').addEventListener('submit', handleCreatePrediction);
+      document.getElementById('has-reward').addEventListener('change', toggleRewardAmount);
+      document.getElementById('add-option-btn').addEventListener('click', addOption);
+    }
+
+    function loadUser() {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        currentUser = JSON.parse(userStr);
+        updateWalletStatus();
+      }
+    }
+
+    function updateWalletStatus() {
+      const walletStatus = document.getElementById('wallet-status');
+      if (currentUser) {
+        walletStatus.innerHTML = `
+          <div class="flex items-center gap-3">
+            ${currentUser.isMember ? '<span class="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">⭐ 会员</span>' : ''}
+            <div class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg">
+              <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+              <span>${currentUser.walletAddress.slice(0, 6)}...${currentUser.walletAddress.slice(-4)}</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function connectWallet() {
+      if (typeof window.ethereum === 'undefined') {
+        alert('请先安装MetaMask钱包');
+        window.open('https://metamask.io/download/', '_blank');
+        return;
+      }
+
+      try {
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const address = accounts[0];
+        
+        const message = `欢迎登录追风观测\\n\\n时间: ${new Date().toISOString()}\\n地址: ${address}`;
+        const signature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [message, address]
+        });
+
+        const response = await fetch(`${API_URL}/api/auth/wallet-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ address, message, signature })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem('token', data.token);
+          currentUser = data.user;
+          updateWalletStatus();
+          alert('✅ 登录成功！');
+        }
+      } catch (error) {
+        console.error('连接失败:', error);
+        alert('连接失败: ' + error.message);
+      }
+    }
+
+    async function loadPredictions() {
+      try {
+        document.getElementById('loading').classList.remove('hidden');
+        
+        const response = await fetch(`${API_URL}/api/predictions`);
+        const data = await response.json();
+        
+        predictions = data.data || [];
+        renderPredictions();
+      } catch (error) {
+        console.error('加载失败:', error);
+      } finally {
+        document.getElementById('loading').classList.add('hidden');
+      }
+    }
+
+    function renderPredictions() {
+      const container = document.getElementById('predictions-list');
+      const emptyState = document.getElementById('empty-state');
+      
+      if (predictions.length === 0) {
+        container.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      container.innerHTML = predictions.map(pred => renderPrediction(pred)).join('');
+      
+      // 绑定投票按钮事件
+      predictions.forEach(pred => {
+        pred.options.forEach((opt, idx) => {
+          const btn = document.getElementById(`vote-${pred._id}-${idx}`);
+          if (btn) {
+            btn.addEventListener('click', () => handleVote(pred._id, idx, pred.hasReward, pred.rewardPerPerson || 0));
+          }
+        });
+      });
+    }
+
+    function renderPrediction(pred) {
+      const totalVotes = pred.options.reduce((sum, opt) => sum + opt.votes.length, 0);
+      const hasVoted = currentUser && pred.options.some(opt => opt.votes.includes(currentUser.id));
+      
+      return `
+        <div class="bg-gray-800 rounded-lg p-6">
+          <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+              <h3 class="text-xl font-semibold mb-2">${pred.title}</h3>
+              ${pred.description ? `<p class="text-gray-400 mb-3">${pred.description}</p>` : ''}
+            </div>
+            <div class="ml-4 text-right">
+              ${pred.hasReward ? `
+                <div class="px-3 py-1 bg-yellow-600 rounded text-sm mb-2">
+                  💰 奖池: ${pred.totalPool || 0} USDT
+                </div>
+              ` : ''}
+              <div class="px-3 py-1 ${pred.status === 'active' ? 'bg-green-600' : 'bg-gray-600'} rounded text-sm mb-2">
+                ${pred.status === 'active' ? '进行中' : '已结束'}
+              </div>
+              <div class="text-xs text-gray-400">
+                截止: ${new Date(pred.deadline).toLocaleDateString('zh-CN')}
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 mb-4">
+            ${pred.options.map((opt, idx) => {
+              const percentage = totalVotes > 0 ? ((opt.votes.length / totalVotes) * 100).toFixed(1) : '0';
+              const isVoted = currentUser && opt.votes.includes(currentUser.id);
+              const canVote = currentUser && !hasVoted && pred.status === 'active';
+              
+              return `
+                <button id="vote-${pred._id}-${idx}"
+                  class="w-full rounded-lg p-4 transition ${
+                    isVoted ? 'bg-blue-600' : canVote ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-700 opacity-60 cursor-not-allowed'
+                  }"
+                  ${!canVote ? 'disabled' : ''}>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="flex items-center">
+                      ${isVoted ? '<span class="mr-2">✓</span>' : ''}
+                      ${opt.text}
+                    </span>
+                    <span class="${isVoted ? 'text-white font-semibold' : 'text-blue-400'}">
+                      ${percentage}%
+                    </span>
+                  </div>
+                  <div class="w-full bg-gray-600 rounded-full h-2">
+                    <div class="h-2 rounded-full transition-all ${isVoted ? 'bg-white' : 'bg-blue-500'}"
+                      style="width: ${percentage}%"></div>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    ${opt.votes.length} 票${pred.hasReward ? ` · ${pred.rewardPerPerson} USDT` : ''}
+                  </div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+
+          <div class="flex items-center justify-between text-sm text-gray-400 border-t border-gray-700 pt-4">
+            <span>发起人: ${pred.creatorId.username}</span>
+            <span>总投票: ${totalVotes}</span>
+          </div>
+
+          ${hasVoted ? `
+            <div class="mt-3 p-3 bg-green-900/20 border border-green-500/30 rounded-lg text-sm text-green-300">
+              ✓ 你已投票！${pred.hasReward ? '预测准确将获得奖励' : ''}
+            </div>
+          ` : ''}
+
+          ${!currentUser ? `
+            <div class="mt-3 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg text-sm text-yellow-300">
+              ⚠️ 请先连接钱包登录后投票
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    async function handleVote(predictionId, optionIndex, hasReward, rewardAmount) {
+      if (!currentUser) {
+        alert('请先连接钱包登录');
+        return;
+      }
+
+      try {
+        let txHash = null;
+
+        if (hasReward && rewardAmount > 0) {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const contract = new ethers.Contract(USDT_ADDRESS, [
+            'function transfer(address to, uint256 amount) returns (bool)'
+          ], signer);
+
+          const amount = ethers.utils.parseUnits(rewardAmount.toString(), 18);
+          const tx = await contract.transfer(PLATFORM_ADDRESS, amount);
+          const receipt = await tx.wait();
+          txHash = receipt.transactionHash;
+        }
+
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/predictions/vote`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            predictionId,
+            optionIndex,
+            amount: rewardAmount,
+            txHash
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('✅ 投票成功！');
+          await loadPredictions();
+        } else {
+          alert('投票失败: ' + data.error);
+        }
+      } catch (error) {
+        console.error('投票失败:', error);
+        alert('投票失败: ' + error.message);
+      }
+    }
+
+    function showCreateForm() {
+      if (!currentUser) {
+        alert('请先连接钱包登录');
+        return;
+      }
+
+      if (!currentUser.isMember) {
+        alert('只有会员才能创建预测，请先成为会员');
+        return;
+      }
+
+      document.getElementById('create-form').classList.remove('hidden');
+      document.getElementById('create-btn').textContent = '取消';
+    }
+
+    function hideCreateForm() {
+      document.getElementById('create-form').classList.add('hidden');
+      document.getElementById('create-btn').textContent = '发起预测';
+      document.getElementById('prediction-form').reset();
+    }
+
+    function toggleRewardAmount(e) {
+      const container = document.getElementById('reward-amount-container');
+      if (e.target.checked) {
+        container.classList.remove('hidden');
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function addOption() {
+      const container = document.getElementById('options-container');
+      const optionCount = container.querySelectorAll('.option-input').length;
+      
+      if (optionCount < 10) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'option-input w-full bg-gray-700 rounded-lg p-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500';
+        input.placeholder = `选项 ${optionCount + 1}`;
+        container.appendChild(input);
+      }
+    }
+
+    async function handleCreatePrediction(e) {
+      e.preventDefault();
+
+      const title = document.getElementById('title').value;
+      const description = document.getElementById('description').value;
+      const hasReward = document.getElementById('has-reward').checked;
+      const rewardPerPerson = hasReward ? parseFloat(document.getElementById('reward-amount').value) : 0;
+      const deadline = document.getElementById('deadline').value;
+      
+      const optionInputs = document.querySelectorAll('.option-input');
+      const options = Array.from(optionInputs)
+        .map(input => input.value.trim())
+        .filter(opt => opt);
+
+      if (options.length < 2) {
+        alert('至少需要2个选项');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`${API_URL}/api/predictions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            title,
+            description,
+            options,
+            hasReward,
+            rewardPerPerson,
+            deadline
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('✅ 预测创建成功！');
+          hideCreateForm();
+          await loadPredictions();
+        } else {
+          alert('创建失败: ' + data.error);
+        }
+      } catch (error) {
+        console.error('创建失败:', error);
+        alert('创建失败: ' + error.message);
+      }
+    }
+  </script>
+</body>
+</html>

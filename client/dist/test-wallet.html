@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>钱包连接测试</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white min-h-screen p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">🧪 钱包连接测试</h1>
+
+    <!-- 状态显示 -->
+    <div id="status" class="mb-8 p-4 bg-gray-800 rounded-lg">
+      <h2 class="text-xl font-semibold mb-2">状态</h2>
+      <p id="status-text" class="text-gray-400">未连接</p>
+    </div>
+
+    <!-- 测试按钮 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <button onclick="testMetaMask()" class="bg-blue-600 hover:bg-blue-700 p-4 rounded-lg">
+        1. 检查MetaMask
+      </button>
+      <button onclick="connectWallet()" class="bg-green-600 hover:bg-green-700 p-4 rounded-lg">
+        2. 连接钱包
+      </button>
+      <button onclick="signMessage()" class="bg-purple-600 hover:bg-purple-700 p-4 rounded-lg">
+        3. 签名消息
+      </button>
+      <button onclick="loginToBackend()" class="bg-yellow-600 hover:bg-yellow-700 p-4 rounded-lg">
+        4. 登录后端
+      </button>
+      <button onclick="checkMembership()" class="bg-pink-600 hover:bg-pink-700 p-4 rounded-lg">
+        5. 检查会员状态
+      </button>
+      <button onclick="becomeMember()" class="bg-red-600 hover:bg-red-700 p-4 rounded-lg">
+        6. 成为会员
+      </button>
+    </div>
+
+    <!-- 日志显示 -->
+    <div class="bg-gray-800 rounded-lg p-4">
+      <h2 class="text-xl font-semibold mb-2">日志</h2>
+      <div id="logs" class="space-y-2 font-mono text-sm"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
+    const PLATFORM_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
+    
+    let currentAddress = null;
+    let currentSignature = null;
+    let currentMessage = null;
+    let currentToken = null;
+
+    function log(message, type = 'info') {
+      const logs = document.getElementById('logs');
+      const colors = {
+        info: 'text-blue-400',
+        success: 'text-green-400',
+        error: 'text-red-400',
+        warning: 'text-yellow-400'
+      };
+      const timestamp = new Date().toLocaleTimeString();
+      logs.innerHTML = `<div class="${colors[type]}">[${timestamp}] ${message}</div>` + logs.innerHTML;
+    }
+
+    function updateStatus(text) {
+      document.getElementById('status-text').textContent = text;
+    }
+
+    async function testMetaMask() {
+      log('检查MetaMask...', 'info');
+      
+      if (typeof window.ethereum === 'undefined') {
+        log('❌ MetaMask未安装', 'error');
+        updateStatus('❌ MetaMask未安装');
+        return false;
+      }
+      
+      log('✅ MetaMask已安装', 'success');
+      updateStatus('✅ MetaMask已安装');
+      return true;
+    }
+
+    async function connectWallet() {
+      log('连接钱包...', 'info');
+      
+      if (!await testMetaMask()) return;
+
+      try {
+        const accounts = await window.ethereum.request({ 
+          method: 'eth_requestAccounts' 
+        });
+        currentAddress = accounts[0];
+        log(`✅ 钱包已连接: ${currentAddress}`, 'success');
+        updateStatus(`✅ 已连接: ${currentAddress.slice(0, 6)}...${currentAddress.slice(-4)}`);
+        return true;
+      } catch (error) {
+        log(`❌ 连接失败: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    async function signMessage() {
+      log('请求签名...', 'info');
+      
+      if (!currentAddress) {
+        log('❌ 请先连接钱包', 'error');
+        return;
+      }
+
+      try {
+        currentMessage = `欢迎登录追风观测\n\n时间: ${new Date().toISOString()}\n地址: ${currentAddress}`;
+        
+        currentSignature = await window.ethereum.request({
+          method: 'personal_sign',
+          params: [currentMessage, currentAddress]
+        });
+        
+        log(`✅ 签名成功`, 'success');
+        log(`签名: ${currentSignature.slice(0, 20)}...`, 'info');
+        return true;
+      } catch (error) {
+        log(`❌ 签名失败: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    async function loginToBackend() {
+      log('登录后端...', 'info');
+      
+      if (!currentAddress || !currentSignature) {
+        log('❌ 请先完成签名', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/auth/wallet-login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            address: currentAddress,
+            message: currentMessage,
+            signature: currentSignature
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          currentToken = data.token;
+          log(`✅ 登录成功`, 'success');
+          log(`用户名: ${data.user.username}`, 'info');
+          log(`会员状态: ${data.user.isMember ? '✅ 会员' : '❌ 非会员'}`, 'info');
+          updateStatus(`✅ 已登录: ${data.user.username}`);
+          return true;
+        } else {
+          log(`❌ 登录失败: ${data.error}`, 'error');
+          return false;
+        }
+      } catch (error) {
+        log(`❌ 登录失败: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    async function checkMembership() {
+      log('检查会员状态...', 'info');
+      
+      if (!currentToken) {
+        log('❌ 请先登录', 'error');
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/api/membership/status`, {
+          headers: {
+            'Authorization': `Bearer ${currentToken}`
+          }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          log(`✅ 会员状态: ${data.isMember ? '会员' : '非会员'}`, 'success');
+          if (data.isMember) {
+            log(`成为会员时间: ${new Date(data.membershipDate).toLocaleString()}`, 'info');
+          }
+          return true;
+        } else {
+          log(`❌ 查询失败: ${data.error}`, 'error');
+          return false;
+        }
+      } catch (error) {
+        log(`❌ 查询失败: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    async function becomeMember() {
+      log('成为会员...', 'warning');
+      log('⚠️  这将发起真实的USDT转账！', 'warning');
+      
+      if (!currentToken) {
+        log('❌ 请先登录', 'error');
+        return;
+      }
+
+      if (!confirm('确定要支付1 USDT成为会员吗？')) {
+        log('❌ 用户取消', 'info');
+        return;
+      }
+
+      try {
+        log('初始化Web3...', 'info');
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        
+        const USDT_ABI = [
+          'function transfer(address to, uint256 amount) returns (bool)',
+          'function balanceOf(address account) view returns (uint256)'
+        ];
+        
+        const contract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
+        
+        log('检查余额...', 'info');
+        const balance = await contract.balanceOf(currentAddress);
+        const balanceFormatted = ethers.utils.formatUnits(balance, 18);
+        log(`USDT余额: ${balanceFormatted}`, 'info');
+        
+        if (parseFloat(balanceFormatted) < 1) {
+          log('❌ USDT余额不足', 'error');
+          return;
+        }
+        
+        log('发起转账...', 'info');
+        const amount = ethers.utils.parseUnits('1', 18);
+        const tx = await contract.transfer(PLATFORM_ADDRESS, amount);
+        
+        log(`✅ 交易已发送: ${tx.hash}`, 'success');
+        log('等待确认...', 'info');
+        
+        const receipt = await tx.wait();
+        log(`✅ 交易已确认，区块: ${receipt.blockNumber}`, 'success');
+        
+        log('激活会员...', 'info');
+        const response = await fetch(`${API_URL}/api/membership/activate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentToken}`
+          },
+          body: JSON.stringify({
+            txHash: receipt.transactionHash,
+            blockNumber: receipt.blockNumber
+          })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          log(`✅ 恭喜成为会员！`, 'success');
+          updateStatus('✅ 会员用户');
+          return true;
+        } else {
+          log(`❌ 激活失败: ${data.error}`, 'error');
+          return false;
+        }
+      } catch (error) {
+        log(`❌ 支付失败: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    // 页面加载时的提示
+    log('🧪 测试页面已加载', 'success');
+    log('请按顺序点击按钮进行测试', 'info');
+  </script>
+</body>
+</html>
