@@ -6,6 +6,7 @@
     <title>追风观测 - 加密货币行情与预测平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
@@ -30,9 +31,9 @@
                         <button onclick="showPage('predictions', event)" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">🎯 预测</button>
                     </div>
                 </div>
-                <div id="wallet-status">
-                    <button id="connect-wallet-btn" onclick="connectWallet()" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm">
-                        连接钱包
+                <div id="user-status">
+                    <button onclick="showLoginModal()" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm">
+                        登录 / 注册
                     </button>
                 </div>
             </div>
@@ -71,43 +72,87 @@
 
         <!-- 新闻页面 -->
         <div id="news-page" class="page hidden">
-            <div class="flex items-center justify-between mb-8">
-                <h1 class="text-3xl font-bold">新闻资讯</h1>
-                <div class="flex space-x-2">
-                    <button onclick="filterNews('')" class="filter-btn px-4 py-2 rounded bg-blue-600">全部</button>
-                    <button onclick="filterNews('realtime')" class="filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">实时新闻</button>
-                    <button onclick="filterNews('important')" class="filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">重要事件</button>
-                    <button onclick="filterNews('breaking')" class="filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600">突发事件</button>
-                </div>
+            <!-- 顶部标签栏 -->
+            <div class="flex items-center space-x-6 mb-6 border-b border-gray-700">
+                <button onclick="filterNews('', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-500">
+                    今天
+                </button>
+                <button onclick="filterNews('realtime', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white">
+                    快讯
+                </button>
+                <button onclick="filterNews('important', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white">
+                    深度
+                </button>
             </div>
-            <div id="news-list" class="space-y-4"></div>
+
+            <!-- 新闻列表 - 时间线式布局 -->
+            <div class="bg-gray-800 rounded-lg">
+                <div id="news-list" class="divide-y divide-gray-700"></div>
+            </div>
+
+            <!-- 加载更多 -->
+            <div class="mt-6 text-center">
+                <button onclick="loadMoreNews()" class="px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
+                    加载更多
+                </button>
+            </div>
         </div>
 
         <!-- 数据日历页面 -->
         <div id="calendar-page" class="page hidden">
-            <h1 class="text-3xl font-bold mb-8">📅 经济数据日历</h1>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <!-- 本周数据 -->
-                <div class="bg-gray-800 rounded-lg p-6">
-                    <h2 class="text-xl font-semibold mb-4 flex items-center">
-                        <span class="text-blue-400 mr-2">📊</span> 本周重要数据
-                    </h2>
-                    <div id="week-data" class="space-y-3"></div>
+            <!-- 顶部筛选栏 -->
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex items-center space-x-4">
+                    <h1 class="text-2xl font-bold">经济数据</h1>
+                    <div class="flex space-x-2">
+                        <button onclick="filterCalendar('all')" class="calendar-filter-btn px-4 py-2 rounded bg-blue-600 text-sm">全部</button>
+                        <button onclick="filterCalendar('important')" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">重要</button>
+                        <button onclick="filterCalendar('today')" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">今天</button>
+                    </div>
                 </div>
-                
-                <!-- 下周数据 -->
-                <div class="bg-gray-800 rounded-lg p-6">
-                    <h2 class="text-xl font-semibold mb-4 flex items-center">
-                        <span class="text-purple-400 mr-2">📈</span> 下周待公布
-                    </h2>
-                    <div id="next-week-data" class="space-y-3"></div>
+                <div class="flex items-center space-x-3">
+                    <button onclick="changeCalendarDate(-1)" class="p-2 bg-gray-700 rounded hover:bg-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <div id="calendar-date-display" class="px-4 py-2 bg-gray-700 rounded text-sm font-semibold">2025-11-27</div>
+                    <button onclick="changeCalendarDate(1)" class="p-2 bg-gray-700 rounded hover:bg-gray-600">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                    <button onclick="setCalendarToday()" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm font-semibold">今天</button>
                 </div>
             </div>
-            
-            <!-- 月度日历 -->
-            <div class="mt-8 bg-gray-800 rounded-lg p-6">
-                <h2 class="text-xl font-semibold mb-4">本月数据日历</h2>
-                <div id="calendar-grid" class="grid grid-cols-7 gap-2"></div>
+
+            <!-- 日期快捷选择 -->
+            <div class="mb-6 bg-gray-800 rounded-lg p-4">
+                <div id="calendar-week-tabs" class="flex space-x-2 overflow-x-auto"></div>
+            </div>
+
+            <!-- 数据列表 -->
+            <div class="bg-gray-800 rounded-lg overflow-hidden">
+                <!-- 表头 -->
+                <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-700 text-sm font-semibold text-gray-300 border-b border-gray-600">
+                    <div class="col-span-1">时间</div>
+                    <div class="col-span-1">数据</div>
+                    <div class="col-span-3">事件</div>
+                    <div class="col-span-1 text-center">重要性</div>
+                    <div class="col-span-1 text-right">前值</div>
+                    <div class="col-span-1 text-right">预测值</div>
+                    <div class="col-span-1 text-right">公布值</div>
+                    <div class="col-span-2 text-center">影响</div>
+                    <div class="col-span-1 text-center">提醒</div>
+                </div>
+                
+                <!-- 数据行 -->
+                <div id="calendar-events-list" class="divide-y divide-gray-700"></div>
+            </div>
+
+            <!-- 数据说明 -->
+            <div class="mt-6 p-4 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                <p class="text-sm text-blue-300">
+                    <strong>📊 数据来源：</strong>经济数据来自主要国家央行和统计机构，每日更新。
+                    <span class="ml-4"><strong>⭐ 重要性：</strong>星级越高，对市场影响越大。</span>
+                    <span class="ml-4"><strong>📈 影响：</strong>利多表示可能推动市场上涨，利空表示可能导致下跌。</span>
+                </p>
             </div>
         </div>
 
@@ -243,6 +288,89 @@
             <div id="predictions-list" class="space-y-6"></div>
         </div>
 
+        <!-- 登录注册弹窗 -->
+        <div id="auth-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="display: none;">
+            <div class="bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-700">
+                <!-- 登录表单 -->
+                <div id="login-form">
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-bold mb-2">登录账号</h2>
+                        <p class="text-gray-400 text-sm">登录后可参与社区互动和预测投票</p>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">用户名或邮箱</label>
+                            <input id="login-username" type="text" placeholder="请输入用户名或邮箱" 
+                                class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">密码</label>
+                            <input id="login-password" type="password" placeholder="请输入密码" 
+                                class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    
+                    <button onclick="handleLogin()" class="w-full px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 font-semibold mb-3">
+                        登录
+                    </button>
+                    
+                    <div class="text-center text-sm text-gray-400">
+                        还没有账号？
+                        <button onclick="switchToRegister()" class="text-blue-400 hover:text-blue-300">立即注册</button>
+                    </div>
+                    
+                    <button onclick="closeAuthModal()" class="w-full mt-4 px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
+                        取消
+                    </button>
+                </div>
+                
+                <!-- 注册表单 -->
+                <div id="register-form" style="display: none;">
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-bold mb-2">注册账号</h2>
+                        <p class="text-gray-400 text-sm">创建账号，开启加密货币社区之旅</p>
+                    </div>
+                    
+                    <div class="space-y-4 mb-6">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">用户名</label>
+                            <input id="register-username" type="text" placeholder="请输入用户名（3-20个字符）" 
+                                class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">邮箱</label>
+                            <input id="register-email" type="email" placeholder="请输入邮箱地址" 
+                                class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">密码</label>
+                            <input id="register-password" type="password" placeholder="请输入密码（至少6个字符）" 
+                                class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">确认密码</label>
+                            <input id="register-password-confirm" type="password" placeholder="请再次输入密码" 
+                                class="w-full px-4 py-3 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    
+                    <button onclick="handleRegister()" class="w-full px-6 py-3 bg-green-600 rounded-lg hover:bg-green-700 font-semibold mb-3">
+                        注册
+                    </button>
+                    
+                    <div class="text-center text-sm text-gray-400">
+                        已有账号？
+                        <button onclick="switchToLogin()" class="text-blue-400 hover:text-blue-300">立即登录</button>
+                    </div>
+                    
+                    <button onclick="closeAuthModal()" class="w-full mt-4 px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- 会员弹窗 -->
         <div id="membership-modal" class="fixed inset-0 bg-black/70 hidden items-center justify-center z-50" style="display: none;">
             <div class="bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-700">
@@ -277,11 +405,82 @@
                     </div>
                 </div>
 
-                <button onclick="becomeMember()" class="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg hover:from-yellow-600 hover:to-orange-600 font-semibold text-white shadow-lg mb-3">
+                <button onclick="showPaymentQRCode()" class="w-full px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg hover:from-yellow-600 hover:to-orange-600 font-semibold text-white shadow-lg mb-3">
                     立即支付 1 USDT
                 </button>
                 <button onclick="closeMembershipModal()" class="w-full px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600">
                     稍后再说
+                </button>
+            </div>
+        </div>
+
+        <!-- 支付二维码弹窗 -->
+        <div id="payment-qr-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50" style="display: none;">
+            <div class="bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-700">
+                <div class="text-center mb-6">
+                    <div class="text-5xl mb-4">💳</div>
+                    <h2 class="text-2xl font-bold mb-2">扫码支付</h2>
+                    <p class="text-gray-400 text-sm">请使用支持 BSC 链的钱包扫码支付</p>
+                </div>
+                
+                <!-- 支付金额 -->
+                <div class="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 rounded-lg p-4 mb-6 border border-yellow-500/30 text-center">
+                    <div class="text-3xl font-bold text-yellow-400 mb-1">1 USDT</div>
+                    <div class="text-xs text-gray-400">BSC 链（BEP20）</div>
+                </div>
+                
+                <!-- 二维码 -->
+                <div class="bg-white p-4 rounded-lg mb-6 flex justify-center">
+                    <div id="payment-qrcode"></div>
+                </div>
+                
+                <!-- 收款地址 -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2 text-gray-300">收款地址</label>
+                    <div class="flex items-center space-x-2">
+                        <input id="payment-address" type="text" readonly 
+                            value="0xAC061A7998ee4EDe184248e19F4C3Afc5Eab53B9"
+                            class="flex-1 px-4 py-3 bg-gray-700 rounded-lg text-sm font-mono text-gray-300 focus:outline-none">
+                        <button onclick="copyPaymentAddress()" 
+                            class="px-4 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 transition flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                    d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            <span class="text-sm font-semibold">复制</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 支付说明 -->
+                <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+                    <div class="text-sm space-y-2 text-gray-300">
+                        <div class="flex items-start space-x-2">
+                            <span class="text-blue-400 mt-0.5">1.</span>
+                            <span>使用支持 BSC 链的钱包（如 Trust Wallet、MetaMask）</span>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <span class="text-blue-400 mt-0.5">2.</span>
+                            <span>扫描二维码或复制地址进行转账</span>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <span class="text-blue-400 mt-0.5">3.</span>
+                            <span>确保选择 <strong class="text-yellow-400">BSC (BEP20)</strong> 网络</span>
+                        </div>
+                        <div class="flex items-start space-x-2">
+                            <span class="text-blue-400 mt-0.5">4.</span>
+                            <span>支付完成后，请联系客服确认升级</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 支付完成按钮 -->
+                <button onclick="confirmPayment()" class="w-full px-6 py-3 bg-green-600 rounded-lg hover:bg-green-700 font-semibold mb-3">
+                    我已完成支付
+                </button>
+                
+                <button onclick="closePaymentQRModal()" class="w-full px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
+                    取消
                 </button>
             </div>
         </div>
@@ -308,11 +507,294 @@
         let cryptoData = [];
 
         let economicData = [];
+        let currentCalendarDate = new Date();
+        let calendarFilter = 'all';
         
-        // 加载真实经济数据（基于当前日期动态生成）
-        function loadEconomicData() {
+        // 国家代码映射
+        const countryFlags = {
+            'US': '🇺🇸', 'CN': '🇨🇳', 'JP': '🇯🇵', 'GB': '🇬🇧', 'EU': '🇪🇺', 
+            'CA': '🇨🇦', 'AU': '🇦🇺', 'DE': '🇩🇪', 'FR': '🇫🇷', 'IT': '🇮🇹',
+            'ES': '🇪🇸', 'CH': '🇨🇭', 'NZ': '🇳🇿', 'KR': '🇰🇷', 'IN': '🇮🇳'
+        };
+        
+        const countryNames = {
+            'US': '美国', 'CN': '中国', 'JP': '日本', 'GB': '英国', 'EU': '欧元区',
+            'CA': '加拿大', 'AU': '澳大利亚', 'DE': '德国', 'FR': '法国', 'IT': '意大利',
+            'ES': '西班牙', 'CH': '瑞士', 'NZ': '新西兰', 'KR': '韩国', 'IN': '印度'
+        };
+        
+        // 经济事件中英文翻译词典
+        const eventTranslations = {
+            // 通用术语
+            'Meeting': '会议', 'Rate': '利率', 'Decision': '决议', 'Statement': '声明',
+            'Minutes': '会议纪要', 'Speech': '讲话', 'Press Conference': '新闻发布会',
+            'Report': '报告', 'Index': '指数', 'Survey': '调查', 'Forecast': '预测',
+            'Preliminary': '初值', 'Final': '终值', 'Revised': '修正值',
+            'Year': '年', 'Month': '月', 'Quarter': '季', 'Week': '周',
+            'Annual': '年率', 'Monthly': '月率', 'Quarterly': '季率', 'Weekly': '周率',
+            
+            // 央行和货币政策
+            'Central Bank': '央行', 'Federal Reserve': '美联储', 'Fed': '美联储',
+            'ECB': '欧洲央行', 'European Central Bank': '欧洲央行',
+            'Bank of Japan': '日本央行', 'BOJ': '日本央行',
+            'Bank of England': '英格兰银行', 'BOE': '英格兰银行',
+            'People\'s Bank of China': '中国人民银行', 'PBOC': '中国人民银行',
+            'Interest Rate': '利率', 'Policy Rate': '政策利率',
+            'Federal Funds Rate': '联邦基金利率', 'Discount Rate': '贴现率',
+            'Reserve Requirement': '存款准备金率',
+            'Monetary Policy': '货币政策', 'Quantitative Easing': '量化宽松',
+            'Tapering': '缩减购债', 'Rate Hike': '加息', 'Rate Cut': '降息',
+            'Governor': '行长', 'Chairman': '主席', 'President': '总裁',
+            'Finance Minister': '财政部长', 'Treasury Secretary': '财政部长',
+            
+            // 就业数据
+            'Non-Farm Payrolls': '非农就业人数', 'NFP': '非农就业',
+            'Nonfarm Payrolls': '非农就业人数',
+            'Employment': '就业', 'Unemployment': '失业', 'Jobless': '失业',
+            'Unemployment Rate': '失业率', 'Employment Change': '就业人数变化',
+            'Job Openings': '职位空缺', 'JOLTS': '职位空缺',
+            'Initial Jobless Claims': '初请失业金人数',
+            'Continuing Jobless Claims': '续请失业金人数',
+            'ADP Employment': 'ADP就业人数', 'ADP': 'ADP',
+            'Labor Force': '劳动力', 'Participation Rate': '劳动参与率',
+            'Average Hourly Earnings': '平均时薪', 'Wage': '工资',
+            
+            // 通胀数据
+            'CPI': '消费者物价指数', 'Consumer Price Index': '消费者物价指数',
+            'Core CPI': '核心CPI', 'PPI': '生产者物价指数',
+            'Producer Price Index': '生产者物价指数', 'Core PPI': '核心PPI',
+            'Inflation': '通胀', 'Deflation': '通缩',
+            'PCE': '个人消费支出', 'Personal Consumption Expenditures': '个人消费支出',
+            'Core PCE': '核心PCE', 'Import Price': '进口物价', 'Export Price': '出口物价',
+            
+            // GDP和经济增长
+            'GDP': 'GDP', 'Gross Domestic Product': '国内生产总值',
+            'GDP Growth': 'GDP增长率', 'Economic Growth': '经济增长',
+            'GDP Deflator': 'GDP平减指数', 'Real GDP': '实际GDP',
+            'Nominal GDP': '名义GDP', 'GNP': '国民生产总值',
+            
+            // 零售和消费
+            'Retail Sales': '零售销售', 'Core Retail Sales': '核心零售销售',
+            'Consumer Spending': '消费者支出', 'Personal Spending': '个人支出',
+            'Consumer Confidence': '消费者信心指数', 'Consumer Sentiment': '消费者信心',
+            'Michigan Consumer Sentiment': '密歇根消费者信心指数',
+            'Conference Board': '谘商会', 'CB Consumer Confidence': '谘商会消费者信心指数',
+            
+            // 制造业和工业
+            'PMI': '采购经理人指数', 'Manufacturing PMI': '制造业PMI',
+            'Services PMI': '服务业PMI', 'Composite PMI': '综合PMI',
+            'ISM Manufacturing': 'ISM制造业指数', 'ISM Services': 'ISM服务业指数',
+            'ISM': 'ISM', 'Industrial Production': '工业生产',
+            'Factory Orders': '工厂订单', 'Durable Goods': '耐用品订单',
+            'Core Durable Goods': '核心耐用品订单',
+            'Capacity Utilization': '产能利用率', 'Manufacturing': '制造业',
+            
+            // 房地产
+            'Housing Starts': '新屋开工', 'Building Permits': '营建许可',
+            'Existing Home Sales': '成屋销售', 'New Home Sales': '新屋销售',
+            'Pending Home Sales': '待完成房屋销售',
+            'Home Price': '房价', 'Case-Shiller': '凯斯-席勒房价指数',
+            'FHFA House Price': 'FHFA房价指数',
+            
+            // 贸易和国际收支
+            'Trade Balance': '贸易帐', 'Current Account': '经常帐',
+            'Exports': '出口', 'Imports': '进口', 'Trade Deficit': '贸易逆差',
+            'Trade Surplus': '贸易顺差', 'Balance of Payments': '国际收支',
+            
+            // 商业和企业
+            'Business Confidence': '企业信心', 'Business Sentiment': '企业景气',
+            'Business Investment': '企业投资', 'Capital Expenditure': '资本支出',
+            'Corporate Profits': '企业利润', 'Earnings': '收益',
+            'IFO Business Climate': 'IFO商业景气指数',
+            'ZEW Economic Sentiment': 'ZEW经济景气指数',
+            'Tankan': '短观调查', 'Beige Book': '褐皮书',
+            
+            // 国债和拍卖
+            'Treasury': '国债', 'Bond': '债券', 'Auction': '竞拍',
+            'Bill': '短期国债', 'Note': '中期国债',
+            'Yield': '收益率', 'Bid-to-Cover': '投标倍数',
+            '4-Week': '4周', '3-Month': '3个月', '6-Month': '6个月',
+            '1-Year': '1年', '2-Year': '2年', '5-Year': '5年',
+            '10-Year': '10年', '20-Year': '20年', '30-Year': '30年',
+            
+            // 其他重要指标
+            'Leading Indicators': '领先指标', 'Coincident Index': '同步指标',
+            'Lagging Indicators': '滞后指标',
+            'Loan Prime Rate': '贷款市场报价利率', 'LPR': '贷款市场报价利率',
+            'Swift': 'Swift', 'Foreign Exchange': '外汇', 'FX': '外汇',
+            'Reserves': '储备', 'Foreign Reserves': '外汇储备',
+            'M2 Money Supply': 'M2货币供应', 'M1': 'M1', 'M2': 'M2', 'M3': 'M3',
+            'Credit': '信贷', 'Loan': '贷款', 'Lending': '贷款',
+            'Fiscal': '财政', 'Budget': '预算', 'Deficit': '赤字', 'Surplus': '盈余',
+            'Debt': '债务', 'Government Debt': '政府债务',
+            
+            // 特定事件
+            'G7': 'G7', 'G20': 'G20', 'OPEC': '欧佩克',
+            'Payrolls': '就业人数', 'Claims': '申请人数',
+            'Sales': '销售', 'Orders': '订单', 'Inventories': '库存',
+            'Production': '生产', 'Output': '产出',
+            'Prices': '物价', 'Costs': '成本',
+            'Sentiment': '信心', 'Confidence': '信心',
+            'Activity': '活动', 'Growth': '增长', 'Change': '变化',
+            'Data': '数据', 'Figure': '数据', 'Number': '数据',
+            'Estimate': '预估', 'Expectation': '预期',
+            'Target': '目标', 'Projection': '预测',
+            
+            // 月份
+            'January': '1月', 'February': '2月', 'March': '3月',
+            'April': '4月', 'May': '5月', 'June': '6月',
+            'July': '7月', 'August': '8月', 'September': '9月',
+            'October': '10月', 'November': '11月', 'December': '12月',
+            'Jan': '1月', 'Feb': '2月', 'Mar': '3月', 'Apr': '4月',
+            'Jun': '6月', 'Jul': '7月', 'Aug': '8月', 'Sep': '9月',
+            'Oct': '10月', 'Nov': '11月', 'Dec': '12月',
+            
+            // 其他常用词
+            'and': '和', 'of': '', 'the': '', 'for': '',
+            'in': '', 'on': '', 'at': '', 'to': '',
+            'from': '来自', 'with': '与', 'by': '由',
+            'Total': '总', 'Net': '净', 'Gross': '总',
+            'Private': '私人', 'Public': '公共', 'Government': '政府',
+            'National': '全国', 'Regional': '地区', 'Local': '地方',
+            'Domestic': '国内', 'Foreign': '外国', 'International': '国际',
+            'Global': '全球', 'Worldwide': '全球',
+        };
+        
+        // 翻译经济事件名称
+        function translateEconomicEvent(eventName) {
+            if (!eventName) return eventName;
+            
+            let translated = eventName;
+            
+            // 按词长度排序，优先匹配长词组
+            const sortedKeys = Object.keys(eventTranslations).sort((a, b) => b.length - a.length);
+            
+            for (const key of sortedKeys) {
+                const value = eventTranslations[key];
+                if (value) {  // 只替换有翻译的词
+                    const regex = new RegExp(key, 'gi');
+                    translated = translated.replace(regex, value);
+                }
+            }
+            
+            // 清理多余空格
+            translated = translated.replace(/\s+/g, ' ').trim();
+            
+            // 如果翻译后还有很多英文，保留原文
+            const chineseChars = (translated.match(/[\u4e00-\u9fa5]/g) || []).length;
+            const totalChars = translated.replace(/\s/g, '').length;
+            
+            // 如果中文字符少于30%，返回原文
+            if (totalChars > 0 && chineseChars / totalChars < 0.3) {
+                return eventName;
+            }
+            
+            return translated;
+        }
+        
+        // 加载真实经济数据
+        async function loadEconomicData() {
+            try {
+                // 尝试从多个 API 源获取数据
+                await loadFromTradingEconomics();
+            } catch (error) {
+                console.error('Failed to load from Trading Economics:', error);
+                try {
+                    await loadFromForexFactory();
+                } catch (error2) {
+                    console.error('Failed to load from Forex Factory:', error2);
+                    // 使用后备模拟数据
+                    loadMockEconomicData();
+                }
+            }
+        }
+        
+        // 从 Trading Economics API 加载（免费代理）
+        async function loadFromTradingEconomics() {
             const today = new Date();
-            const formatDate = (date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+            const startDate = new Date(today);
+            startDate.setDate(startDate.getDate() - 1);
+            const endDate = new Date(today);
+            endDate.setDate(endDate.getDate() + 7);
+            
+            const startStr = startDate.toISOString().split('T')[0];
+            const endStr = endDate.toISOString().split('T')[0];
+            
+            // 使用公开的经济日历 API
+            const response = await fetch(
+                `https://api.tradingeconomics.com/calendar?c=guest:guest&d1=${startStr}&d2=${endStr}`,
+                { timeout: 5000 }
+            );
+            
+            if (!response.ok) throw new Error('API request failed');
+            
+            const data = await response.json();
+            economicData = data.map((item, index) => ({
+                id: index + 1,
+                country: countryFlags[item.Country] || '🌐',
+                countryName: countryNames[item.Country] || item.Country,
+                event: translateEconomicEvent(item.Event),
+                dateObj: new Date(item.Date),
+                time: new Date(item.Date).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+                importance: item.Importance === 'High' ? 5 : item.Importance === 'Medium' ? 3 : 1,
+                status: item.Actual ? 'published' : 'upcoming',
+                previous: item.Previous ? String(item.Previous) : '--',
+                forecast: item.Forecast ? String(item.Forecast) : '--',
+                actual: item.Actual ? String(item.Actual) : '',
+                impact: determineImpact(item.Actual, item.Forecast, item.Previous)
+            }));
+            
+            renderEconomicCalendar();
+        }
+        
+        // 从 Forex Factory 风格的 API 加载
+        async function loadFromForexFactory() {
+            // 使用公开的金融日历 API
+            const response = await fetch('https://nfs.faireconomy.media/ff_calendar_thisweek.json', {
+                timeout: 5000
+            });
+            
+            if (!response.ok) throw new Error('API request failed');
+            
+            const data = await response.json();
+            economicData = data.map((item, index) => {
+                const eventDate = new Date(item.date);
+                return {
+                    id: index + 1,
+                    country: countryFlags[item.country] || '🌐',
+                    countryName: countryNames[item.country] || item.country,
+                    event: translateEconomicEvent(item.title),
+                    dateObj: eventDate,
+                    time: item.time || '00:00',
+                    importance: item.impact === 'High' ? 5 : item.impact === 'Medium' ? 3 : 1,
+                    status: item.actual ? 'published' : 'upcoming',
+                    previous: item.previous || '--',
+                    forecast: item.forecast || '--',
+                    actual: item.actual || '',
+                    impact: determineImpact(item.actual, item.forecast, item.previous)
+                };
+            });
+            
+            renderEconomicCalendar();
+        }
+        
+        // 判断影响
+        function determineImpact(actual, forecast, previous) {
+            if (!actual || !forecast) return 'neutral';
+            
+            const actualNum = parseFloat(String(actual).replace(/[^0-9.-]/g, ''));
+            const forecastNum = parseFloat(String(forecast).replace(/[^0-9.-]/g, ''));
+            
+            if (isNaN(actualNum) || isNaN(forecastNum)) return 'neutral';
+            
+            if (actualNum > forecastNum) return 'bullish';
+            if (actualNum < forecastNum) return 'bearish';
+            return 'neutral';
+        }
+        
+        // 后备模拟数据
+        function loadMockEconomicData() {
+            const today = new Date();
             const addDays = (date, days) => {
                 const result = new Date(date);
                 result.setDate(result.getDate() + days);
@@ -320,55 +802,442 @@
             };
             
             economicData = [
-                { id: 1, country: '🇺🇸 美国', event: '非农就业数据', date: formatDate(addDays(today, 1)), time: '21:30', importance: 5, status: 'upcoming', previous: '15万', forecast: '18万', actual: '' },
-                { id: 2, country: '🇺🇸 美国', event: 'CPI通胀数据', date: formatDate(addDays(today, 5)), time: '21:30', importance: 5, status: 'upcoming', previous: '3.2%', forecast: '3.1%', actual: '' },
-                { id: 3, country: '🇺🇸 美国', event: '联储利率决议', date: formatDate(addDays(today, 7)), time: '03:00', importance: 5, status: 'upcoming', previous: '5.5%', forecast: '5.5%', actual: '' },
-                { id: 4, country: '🇪🇺 欧元区', event: 'GDP数据', date: formatDate(today), time: '18:00', importance: 4, status: 'published', previous: '0.1%', forecast: '0.2%', actual: '0.1%' },
-                { id: 5, country: '🇨🇳 中国', event: 'CPI数据', date: formatDate(addDays(today, 2)), time: '09:30', importance: 4, status: 'upcoming', previous: '0.2%', forecast: '0.3%', actual: '' },
-                { id: 6, country: '🇯🇵 日本', event: '央行利率决议', date: formatDate(addDays(today, 12)), time: '11:00', importance: 4, status: 'upcoming', previous: '-0.1%', forecast: '-0.1%', actual: '' },
-                { id: 7, country: '🇬🇧 英国', event: '失业率', date: formatDate(addDays(today, 6)), time: '15:00', importance: 3, status: 'upcoming', previous: '4.2%', forecast: '4.3%', actual: '' },
-                { id: 8, country: '🇨🇦 加拿大', event: '就业数据', date: formatDate(addDays(today, 1)), time: '21:30', importance: 3, status: 'upcoming', previous: '1.8万', forecast: '2.0万', actual: '' },
-                { id: 9, country: '🇺🇸 美国', event: '零售销售数据', date: formatDate(addDays(today, 3)), time: '21:30', importance: 4, status: 'upcoming', previous: '0.4%', forecast: '0.5%', actual: '' },
-                { id: 10, country: '🇪🇺 欧元区', event: 'ECB利率决议', date: formatDate(addDays(today, 10)), time: '20:15', importance: 5, status: 'upcoming', previous: '4.5%', forecast: '4.5%', actual: '' },
+                // 今天
+                { id: 1, country: '🇺🇸', countryName: '美国', event: '4个月国债竞拍-得标利率', dateObj: today, time: '00:30', importance: 1, status: 'published', previous: '3.75%', forecast: '--', actual: '3.75%', impact: 'neutral' },
+                { id: 2, country: '🇺🇸', countryName: '美国', event: '4个月国债竞拍-得标利率配置百分比', dateObj: today, time: '00:30', importance: 1, status: 'published', previous: '95.87%', forecast: '--', actual: '32.08%', impact: 'bullish' },
+                { id: 3, country: '🇺🇸', countryName: '美国', event: '4个月国债竞拍-投标倍数', dateObj: today, time: '00:30', importance: 1, status: 'published', previous: '3.18', forecast: '--', actual: '3.15', impact: 'bullish' },
+                { id: 4, country: '🇺🇸', countryName: '美国', event: '20年期国债竞拍-得标利率', dateObj: today, time: '02:00', importance: 2, status: 'published', previous: '4.51%', forecast: '--', actual: '4.706%', impact: 'bullish' },
+                { id: 5, country: '🇺🇸', countryName: '美国', event: '20年期国债竞拍-得标利率配置百分比', dateObj: today, time: '02:00', importance: 2, status: 'published', previous: '56.07%', forecast: '--', actual: '62.39%', impact: 'bearish' },
+                { id: 6, country: '🇺🇸', countryName: '美国', event: '20年期国债竞拍-投标倍数', dateObj: today, time: '02:00', importance: 2, status: 'published', previous: '2.73', forecast: '--', actual: '2.61', impact: 'bullish' },
+                { id: 7, country: '🇯🇵', countryName: '日本', event: '当周买进外国债券', dateObj: today, time: '07:50', importance: 2, status: 'published', previous: '5663', forecast: '--', actual: '3484', impact: 'bullish' },
+                { id: 8, country: '🇯🇵', countryName: '日本', event: '当周买进外国股票', dateObj: today, time: '07:50', importance: 2, status: 'published', previous: '-4395', forecast: '--', actual: '1833', impact: 'bearish' },
+                { id: 9, country: '🇯🇵', countryName: '日本', event: '当周外资买进日债', dateObj: today, time: '07:50', importance: 1, status: 'published', previous: '915', forecast: '--', actual: '9616', impact: 'bearish' },
+                { id: 10, country: '🇯🇵', countryName: '日本', event: '当周外资买进日股', dateObj: today, time: '07:50', importance: 1, status: 'published', previous: '-3473', forecast: '--', actual: '10209', impact: 'bearish' },
+                { id: 11, country: '🇨🇳', countryName: '中国', event: 'Swift人民币在全球支付中占比', dateObj: today, time: '09:00', importance: 3, status: 'published', previous: '3.17%', forecast: '--', actual: '2.47%', impact: 'bullish' },
+                { id: 12, country: '🇨🇳', countryName: '中国', event: '一年期贷款市场报价利率', dateObj: today, time: '09:00', importance: 3, status: 'upcoming', previous: '3.00%', forecast: '3.00%', actual: '', impact: 'neutral' },
+                { id: 13, country: '🇨🇳', countryName: '中国', event: '五年期贷款市场报价利率', dateObj: today, time: '09:00', importance: 2, status: 'upcoming', previous: '3.50%', forecast: '3.50%', actual: '', impact: 'neutral' },
+                
+                // 明天
+                { id: 14, country: '🇺🇸', countryName: '美国', event: '非农就业数据', dateObj: addDays(today, 1), time: '21:30', importance: 5, status: 'upcoming', previous: '15万', forecast: '18万', actual: '', impact: 'high' },
+                { id: 15, country: '🇨🇦', countryName: '加拿大', event: '就业数据', dateObj: addDays(today, 1), time: '21:30', importance: 3, status: 'upcoming', previous: '1.8万', forecast: '2.0万', actual: '', impact: 'medium' },
+                { id: 16, country: '🇬🇧', countryName: '英国', event: 'GDP季率初值', dateObj: addDays(today, 1), time: '15:00', importance: 4, status: 'upcoming', previous: '0.2%', forecast: '0.3%', actual: '', impact: 'high' },
+                
+                // 后天
+                { id: 17, country: '🇨🇳', countryName: '中国', event: 'CPI年率', dateObj: addDays(today, 2), time: '09:30', importance: 4, status: 'upcoming', previous: '0.2%', forecast: '0.3%', actual: '', impact: 'high' },
+                { id: 18, country: '🇪🇺', countryName: '欧元区', event: '制造业PMI初值', dateObj: addDays(today, 2), time: '17:00', importance: 3, status: 'upcoming', previous: '46.5', forecast: '47.0', actual: '', impact: 'medium' },
+                { id: 19, country: '🇺🇸', countryName: '美国', event: '零售销售月率', dateObj: addDays(today, 3), time: '21:30', importance: 4, status: 'upcoming', previous: '0.4%', forecast: '0.5%', actual: '', impact: 'high' },
+                
+                // 未来一周
+                { id: 20, country: '🇺🇸', countryName: '美国', event: 'CPI年率', dateObj: addDays(today, 5), time: '21:30', importance: 5, status: 'upcoming', previous: '3.2%', forecast: '3.1%', actual: '', impact: 'high' },
+                { id: 21, country: '🇬🇧', countryName: '英国', event: '失业率', dateObj: addDays(today, 6), time: '15:00', importance: 3, status: 'upcoming', previous: '4.2%', forecast: '4.3%', actual: '', impact: 'medium' },
+                { id: 22, country: '🇺🇸', countryName: '美国', event: '联邦基金利率决议', dateObj: addDays(today, 7), time: '03:00', importance: 5, status: 'upcoming', previous: '5.50%', forecast: '5.50%', actual: '', impact: 'high' },
+                { id: 23, country: '🇯🇵', countryName: '日本', event: '核心CPI年率', dateObj: addDays(today, 8), time: '07:30', importance: 4, status: 'upcoming', previous: '2.8%', forecast: '2.7%', actual: '', impact: 'high' },
+                { id: 24, country: '🇦🇺', countryName: '澳大利亚', event: '就业人数变化', dateObj: addDays(today, 9), time: '08:30', importance: 3, status: 'upcoming', previous: '6.4万', forecast: '2.5万', actual: '', impact: 'medium' },
+                { id: 25, country: '🇪🇺', countryName: '欧元区', event: 'ECB利率决议', dateObj: addDays(today, 10), time: '20:15', importance: 5, status: 'upcoming', previous: '4.50%', forecast: '4.50%', actual: '', impact: 'high' },
+                { id: 26, country: '🇨🇳', countryName: '中国', event: '工业增加值年率', dateObj: addDays(today, 11), time: '10:00', importance: 3, status: 'upcoming', previous: '4.5%', forecast: '4.7%', actual: '', impact: 'medium' },
+                { id: 27, country: '🇯🇵', countryName: '日本', event: '央行利率决议', dateObj: addDays(today, 12), time: '11:00', importance: 4, status: 'upcoming', previous: '-0.10%', forecast: '-0.10%', actual: '', impact: 'high' },
+                { id: 28, country: '🇩🇪', countryName: '德国', event: 'IFO商业景气指数', dateObj: addDays(today, 13), time: '17:00', importance: 3, status: 'upcoming', previous: '86.9', forecast: '87.5', actual: '', impact: 'medium' },
             ];
             
             renderEconomicCalendar();
+            
+            // 显示提示
+            const calendarPage = document.getElementById('calendar-page');
+            if (calendarPage && !document.getElementById('api-fallback-notice')) {
+                const notice = document.createElement('div');
+                notice.id = 'api-fallback-notice';
+                notice.className = 'mt-6 p-4 bg-yellow-900/20 border border-yellow-500/30 rounded-lg';
+                notice.innerHTML = '<p class="text-sm text-yellow-300">⚠️ <strong>演示数据：</strong>无法连接到真实 API，当前显示模拟数据。部署到服务器后将自动使用真实数据。</p>';
+                calendarPage.appendChild(notice);
+            }
+        }
+        
+        // 渲染经济日历
+        function renderEconomicCalendar() {
+            // 更新日期显示
+            const dateDisplay = document.getElementById('calendar-date-display');
+            if (dateDisplay) {
+                dateDisplay.textContent = currentCalendarDate.toISOString().split('T')[0];
+            }
+            
+            // 渲染周标签
+            renderWeekTabs();
+            
+            // 筛选数据
+            let filteredData = economicData;
+            const currentDateStr = currentCalendarDate.toISOString().split('T')[0];
+            
+            if (calendarFilter === 'today') {
+                filteredData = economicData.filter(d => d.dateObj.toISOString().split('T')[0] === currentDateStr);
+            } else if (calendarFilter === 'important') {
+                filteredData = economicData.filter(d => d.importance >= 3);
+            }
+            
+            // 按日期分组
+            const groupedByDate = {};
+            filteredData.forEach(event => {
+                const dateKey = event.dateObj.toISOString().split('T')[0];
+                if (!groupedByDate[dateKey]) {
+                    groupedByDate[dateKey] = [];
+                }
+                groupedByDate[dateKey].push(event);
+            });
+            
+            // 渲染事件列表
+            const eventsList = document.getElementById('calendar-events-list');
+            if (eventsList) {
+                let html = '';
+                Object.keys(groupedByDate).sort().forEach(dateKey => {
+                    const events = groupedByDate[dateKey].sort((a, b) => a.time.localeCompare(b.time));
+                    events.forEach(event => {
+                        const impactColor = event.impact === 'bullish' ? 'text-green-400' : 
+                                          event.impact === 'bearish' ? 'text-red-400' : 'text-yellow-400';
+                        const impactText = event.impact === 'bullish' ? '利空 金银' : 
+                                         event.impact === 'bearish' ? '利多 金银' : '影响较小';
+                        const statusBadge = event.status === 'published' ? 
+                            '<span class="text-xs px-2 py-1 bg-green-900/50 text-green-400 rounded">已公布</span>' : '';
+                        
+                        html += `
+                            <div class="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition cursor-pointer border-l-4 ${event.importance >= 3 ? 'border-yellow-500' : 'border-transparent'}">
+                                <div class="col-span-1 text-sm text-gray-400">${event.time}</div>
+                                <div class="col-span-1 text-sm">${event.country}</div>
+                                <div class="col-span-3 text-sm">
+                                    <div class="font-semibold text-white">${event.event}</div>
+                                    ${statusBadge}
+                                </div>
+                                <div class="col-span-1 text-center">
+                                    <span class="text-yellow-400">${'⭐'.repeat(event.importance)}</span>
+                                </div>
+                                <div class="col-span-1 text-right text-sm text-gray-300">${event.previous}</div>
+                                <div class="col-span-1 text-right text-sm text-gray-300">${event.forecast}</div>
+                                <div class="col-span-1 text-right text-sm font-semibold ${event.actual ? impactColor : 'text-gray-600'}">
+                                    ${event.actual || '--'}
+                                </div>
+                                <div class="col-span-2 text-center">
+                                    <span class="text-xs px-3 py-1 rounded ${event.impact === 'bullish' ? 'bg-green-900/30 text-green-400' : event.impact === 'bearish' ? 'bg-red-900/30 text-red-400' : 'bg-gray-700 text-gray-400'}">
+                                        ${impactText}
+                                    </span>
+                                </div>
+                                <div class="col-span-1 text-center">
+                                    <button class="text-gray-400 hover:text-yellow-400 transition">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+                eventsList.innerHTML = html || '<div class="px-6 py-8 text-center text-gray-400">暂无数据</div>';
+            }
+        }
+        
+        // 渲染周标签
+        function renderWeekTabs() {
+            const weekTabs = document.getElementById('calendar-week-tabs');
+            if (!weekTabs) return;
+            
+            const today = new Date();
+            let html = '';
+            for (let i = -3; i <= 3; i++) {
+                const date = new Date(today);
+                date.setDate(date.getDate() + i);
+                const dateStr = date.toISOString().split('T')[0];
+                const isSelected = dateStr === currentCalendarDate.toISOString().split('T')[0];
+                const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+                const dayName = dayNames[date.getDay()];
+                const dateNum = date.getDate();
+                
+                html += `
+                    <button onclick="setCalendarDate('${dateStr}')" class="flex-shrink-0 px-4 py-2 rounded ${isSelected ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'} transition">
+                        <div class="text-xs text-gray-400">${i === 0 ? '今天' : dayName}</div>
+                        <div class="text-sm font-semibold">${dateNum}</div>
+                    </button>
+                `;
+            }
+            weekTabs.innerHTML = html;
+        }
+        
+        // 日历筛选
+        function filterCalendar(filter) {
+            calendarFilter = filter;
+            document.querySelectorAll('.calendar-filter-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            });
+            event.target.classList.remove('bg-gray-700');
+            event.target.classList.add('bg-blue-600');
+            renderEconomicCalendar();
+        }
+        
+        // 改变日期
+        function changeCalendarDate(days) {
+            currentCalendarDate.setDate(currentCalendarDate.getDate() + days);
+            renderEconomicCalendar();
+        }
+        
+        // 设置为今天
+        function setCalendarToday() {
+            currentCalendarDate = new Date();
+            renderEconomicCalendar();
+        }
+        
+        // 设置特定日期
+        function setCalendarDate(dateStr) {
+            currentCalendarDate = new Date(dateStr);
+            renderEconomicCalendar();
         }
 
+        // 用户系统状态
         let isLoggedIn = false;
         let isMember = false;
+        let userType = 'guest'; // guest, user, member
         
         // 用户每日发起限制
         let userStats = {
-            rewardPredictionsToday: 0,  // 今天发起的有奖预测数
-            freePredictionsToday: 0,     // 今天发起的无奖预测数
+            rewardPredictionsToday: 0,  // 今天发起的有奖预测数（会员专属）
+            freePredictionsToday: 0,     // 今天发起的无奖预测数（普通用户）
             lastResetDate: new Date().toDateString(),  // 上次重置日期
             platformFund: 0,  // 平台累计激励基金
             weeklyContributions: []  // 本周贡献记录
         };
+        
+        // 用户权限配置
+        const USER_PERMISSIONS = {
+            guest: {
+                canViewMarket: true,
+                canViewNews: true,
+                canViewCalendar: true,
+                canPost: false,
+                canComment: false,
+                canCreateFreePrediction: false,
+                canCreateRewardPrediction: false,
+                canVote: false,
+                freePredictionsPerDay: 0,
+                rewardPredictionsPerDay: 0
+            },
+            user: {
+                canViewMarket: true,
+                canViewNews: true,
+                canViewCalendar: true,
+                canPost: true,
+                canComment: true,
+                canCreateFreePrediction: true,
+                canCreateRewardPrediction: false,
+                canVote: true,
+                freePredictionsPerDay: 3,
+                rewardPredictionsPerDay: 0
+            },
+            member: {
+                canViewMarket: true,
+                canViewNews: true,
+                canViewCalendar: true,
+                canPost: true,
+                canComment: true,
+                canCreateFreePrediction: true,
+                canCreateRewardPrediction: true,
+                canVote: true,
+                freePredictionsPerDay: 3,
+                rewardPredictionsPerDay: 5
+            }
+        };
+        
+        // 检查用户权限
+        function checkPermission(permission) {
+            return USER_PERMISSIONS[userType][permission] || false;
+        }
+        
+        // 获取每日限制
+        function getDailyLimit(type) {
+            if (type === 'free') {
+                return USER_PERMISSIONS[userType].freePredictionsPerDay;
+            } else if (type === 'reward') {
+                return USER_PERMISSIONS[userType].rewardPredictionsPerDay;
+            }
+            return 0;
+        }
+        
+        // 检查每日限制
+        function checkDailyLimit(type) {
+            // 检查是否需要重置
+            const today = new Date().toDateString();
+            if (userStats.lastResetDate !== today) {
+                userStats.freePredictionsToday = 0;
+                userStats.rewardPredictionsToday = 0;
+                userStats.lastResetDate = today;
+                saveUserStats();
+            }
+            
+            if (type === 'free') {
+                return userStats.freePredictionsToday < getDailyLimit('free');
+            } else if (type === 'reward') {
+                return userStats.rewardPredictionsToday < getDailyLimit('reward');
+            }
+            return false;
+        }
+        
+        // 增加使用次数
+        function incrementDailyUsage(type) {
+            if (type === 'free') {
+                userStats.freePredictionsToday++;
+            } else if (type === 'reward') {
+                userStats.rewardPredictionsToday++;
+            }
+            saveUserStats();
+        }
+        
+        // 保存用户统计
+        function saveUserStats() {
+            localStorage.setItem('userStats', JSON.stringify(userStats));
+        }
+        
+        // 加载用户统计
+        function loadUserStats() {
+            const saved = localStorage.getItem('userStats');
+            if (saved) {
+                userStats = JSON.parse(saved);
+            }
+        }
 
         let newsData = [];
         let currentNewsFilter = '';
         
-        // 中文关键词映射
+        // 中文关键词映射 - 扩展版
         const translateKeywords = {
+            // 主要加密货币
             'Bitcoin': '比特币', 'BTC': '比特币',
             'Ethereum': '以太坊', 'ETH': '以太坊',
+            'Binance Coin': '币安币', 'BNB': '币安币',
+            'Ripple': '瑞波币', 'XRP': '瑞波币',
+            'Cardano': '艾达币', 'ADA': '艾达币',
+            'Solana': 'Solana', 'SOL': 'Solana',
+            'Polkadot': '波卡', 'DOT': '波卡',
+            'Dogecoin': '狗狗币', 'DOGE': '狗狗币',
+            'Polygon': 'Polygon', 'MATIC': 'Polygon',
+            'Avalanche': '雪崩', 'AVAX': '雪崩',
+            'Chainlink': 'Chainlink', 'LINK': 'Chainlink',
+            'Litecoin': '莱特币', 'LTC': '莱特币',
+            'Tether': '泰达币', 'USDT': 'USDT',
+            'USD Coin': 'USDC', 'USDC': 'USDC',
+            'Shiba Inu': '柴犬币', 'SHIB': '柴犬币',
+            
+            // 基础术语
             'cryptocurrency': '加密货币', 'crypto': '加密货币',
             'blockchain': '区块链', 'price': '价格',
             'market': '市场', 'trading': '交易',
-            'bull': '牛市', 'bear': '熊市',
-            'surge': '飙升', 'crash': '暴跌',
-            'rally': '反弹', 'drop': '下跌'
+            'exchange': '交易所', 'wallet': '钱包',
+            'token': '代币', 'coin': '币',
+            'altcoin': '山寨币', 'stablecoin': '稳定币',
+            'DeFi': 'DeFi', 'NFT': 'NFT',
+            'mining': '挖矿', 'miner': '矿工',
+            'hash': '哈希', 'node': '节点',
+            'consensus': '共识', 'protocol': '协议',
+            
+            // 市场术语
+            'bull market': '牛市', 'bull': '牛市', 'bullish': '看涨',
+            'bear market': '熊市', 'bear': '熊市', 'bearish': '看跌',
+            'surge': '飙升', 'soar': '飙升', 'skyrocket': '暴涨',
+            'crash': '暴跌', 'plunge': '暴跌', 'collapse': '崩盘',
+            'rally': '反弹', 'rebound': '反弹', 'recover': '恢复',
+            'drop': '下跌', 'fall': '下跌', 'decline': '下跌',
+            'rise': '上涨', 'gain': '上涨', 'increase': '增长',
+            'pump': '拉盘', 'dump': '砸盘',
+            'volatility': '波动性', 'volatile': '波动',
+            'correction': '回调', 'dip': '回调',
+            'breakout': '突破', 'resistance': '阻力位',
+            'support': '支撑位', 'trend': '趋势',
+            'volume': '成交量', 'liquidity': '流动性',
+            'market cap': '市值', 'marketcap': '市值',
+            'capitalization': '市值',
+            
+            // 交易术语
+            'buy': '买入', 'sell': '卖出', 'hold': '持有',
+            'long': '做多', 'short': '做空',
+            'leverage': '杠杆', 'margin': '保证金',
+            'futures': '期货', 'options': '期权',
+            'spot': '现货', 'derivatives': '衍生品',
+            'order': '订单', 'bid': '买单', 'ask': '卖单',
+            'limit order': '限价单', 'market order': '市价单',
+            'stop loss': '止损', 'take profit': '止盈',
+            
+            // 技术术语
+            'smart contract': '智能合约', 'contract': '合约',
+            'decentralized': '去中心化', 'centralized': '中心化',
+            'peer-to-peer': '点对点', 'P2P': '点对点',
+            'consensus mechanism': '共识机制',
+            'proof of work': '工作量证明', 'PoW': '工作量证明',
+            'proof of stake': '权益证明', 'PoS': '权益证明',
+            'fork': '分叉', 'hard fork': '硬分叉', 'soft fork': '软分叉',
+            'halving': '减半', 'airdrop': '空投',
+            'staking': '质押', 'yield farming': '流动性挖矿',
+            'gas fee': 'Gas费', 'transaction fee': '交易费',
+            
+            // 监管和新闻
+            'regulation': '监管', 'regulatory': '监管',
+            'SEC': '美国证券交易委员会', 'CFTC': '美国商品期货交易委员会',
+            'ban': '禁令', 'approve': '批准', 'approval': '批准',
+            'ETF': 'ETF', 'institutional': '机构',
+            'adoption': '采用', 'mainstream': '主流',
+            'investment': '投资', 'investor': '投资者',
+            'whale': '巨鲸', 'retail': '散户',
+            'FUD': 'FUD', 'FOMO': 'FOMO',
+            'scam': '骗局', 'hack': '黑客攻击', 'hacked': '被黑',
+            'security': '安全', 'vulnerability': '漏洞',
+            
+            // 动作和状态
+            'launch': '推出', 'release': '发布',
+            'announce': '宣布', 'announcement': '公告',
+            'update': '更新', 'upgrade': '升级',
+            'integrate': '集成', 'integration': '集成',
+            'partner': '合作', 'partnership': '合作',
+            'acquire': '收购', 'acquisition': '收购',
+            'expand': '扩展', 'expansion': '扩张',
+            'develop': '开发', 'development': '开发',
+            
+            // 时间和数量
+            'today': '今天', 'yesterday': '昨天',
+            'week': '周', 'month': '月', 'year': '年',
+            'daily': '每日', 'weekly': '每周', 'monthly': '每月',
+            'billion': '十亿', 'million': '百万',
+            'thousand': '千', 'trillion': '万亿',
+            
+            // 其他常用词
+            'new': '新', 'latest': '最新',
+            'major': '主要', 'significant': '重大',
+            'record': '创纪录', 'historic': '历史性',
+            'massive': '大规模', 'huge': '巨大',
+            'top': '顶级', 'leading': '领先',
+            'popular': '热门', 'trending': '热门',
+            'analysis': '分析', 'report': '报告',
+            'data': '数据', 'chart': '图表',
+            'prediction': '预测', 'forecast': '预测',
+            'expert': '专家', 'analyst': '分析师',
+            'CEO': 'CEO', 'founder': '创始人',
+            'company': '公司', 'platform': '平台',
+            'network': '网络', 'ecosystem': '生态系统',
+            'community': '社区', 'user': '用户',
+            'global': '全球', 'worldwide': '全球',
+            'industry': '行业', 'sector': '领域'
         };
         
-        // 翻译函数
+        // 增强的翻译函数
         function translateText(text) {
+            if (!text) return text;
+            
             let translated = text;
-            for (const [en, cn] of Object.entries(translateKeywords)) {
-                const regex = new RegExp(en, 'gi');
-                translated = translated.replace(regex, cn);
+            
+            // 按词长度排序，优先匹配长词组
+            const sortedKeys = Object.keys(translateKeywords).sort((a, b) => b.length - a.length);
+            
+            for (const key of sortedKeys) {
+                const value = translateKeywords[key];
+                // 使用单词边界匹配，避免部分匹配
+                const regex = new RegExp(`\\b${key}\\b`, 'gi');
+                translated = translated.replace(regex, value);
             }
+            
+            // 清理多余空格
+            translated = translated.replace(/\s+/g, ' ').trim();
+            
             return translated;
         }
         
@@ -580,143 +1449,87 @@
             loadCryptoPrices();
         }, 30000);
 
-        // 渲染新闻
+        // 渲染新闻 - 时间线式布局
         function renderNews(filter = '') {
             currentNewsFilter = filter;
             const filtered = filter ? newsData.filter(n => n.category === filter) : newsData;
-            const sentimentColors = { bullish: 'bg-green-500', bearish: 'bg-red-500', neutral: 'bg-gray-500' };
-            const sentimentText = { bullish: '利多 📈', bearish: '利空 📉', neutral: '中性' };
-            const categoryText = { realtime: '实时新闻', important: '重要事件', breaking: '突发事件' };
+            const sentimentColors = { 
+                bullish: 'text-red-400', 
+                bearish: 'text-green-400', 
+                neutral: 'text-gray-400' 
+            };
+            const sentimentText = { 
+                bullish: '利空', 
+                bearish: '利多', 
+                neutral: '中性' 
+            };
+            const categoryIcons = { 
+                realtime: '⚡', 
+                important: '📌', 
+                breaking: '🔥' 
+            };
             
-            document.getElementById('news-list').innerHTML = filtered.map(news => `
-                <div class="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 cursor-pointer">
-                    <div class="flex items-start justify-between mb-3">
-                        <div class="flex items-center space-x-3">
-                            <span class="px-3 py-1 bg-blue-600 rounded text-sm">${categoryText[news.category]}</span>
-                            <span class="px-3 py-1 rounded text-sm ${sentimentColors[news.sentiment]}">${sentimentText[news.sentiment]}</span>
-                        </div>
-                        <span class="text-gray-400 text-sm">${news.time}</span>
+            const newsList = document.getElementById('news-list');
+            if (!newsList) return;
+            
+            newsList.innerHTML = filtered.map((news, index) => `
+                <div class="flex hover:bg-gray-750 transition cursor-pointer group">
+                    <!-- 时间列 -->
+                    <div class="w-20 flex-shrink-0 px-4 py-4 text-right">
+                        <div class="text-sm text-gray-400">${news.time}</div>
                     </div>
-                    <h3 class="text-xl font-semibold mb-2">${news.title}</h3>
-                    <p class="text-gray-300 mb-3">${news.content}</p>
-                    <div class="flex items-center justify-between text-sm text-gray-400">
-                        <span>来源: ${news.source}</span>
-                        <span>👁️ ${news.views.toLocaleString()} 阅读</span>
+                    
+                    <!-- 内容列 -->
+                    <div class="flex-1 px-6 py-4 border-l-2 ${index === 0 ? 'border-red-500' : 'border-gray-700'} group-hover:border-blue-500 transition">
+                        <!-- 标签和情绪 -->
+                        <div class="flex items-center space-x-2 mb-2">
+                            <span class="text-lg">${categoryIcons[news.category]}</span>
+                            <span class="text-xs px-2 py-1 rounded ${index === 0 ? 'bg-red-900/30 text-red-400' : 'bg-gray-700 text-gray-300'}">
+                                ${news.category === 'realtime' ? '快讯' : news.category === 'important' ? '深度' : '突发'}
+                            </span>
+                            <span class="text-xs ${sentimentColors[news.sentiment]}">
+                                ${sentimentText[news.sentiment]}
+                            </span>
+                        </div>
+                        
+                        <!-- 标题 -->
+                        <h3 class="text-base font-semibold mb-2 text-white group-hover:text-blue-400 transition leading-relaxed">
+                            ${news.title}
+                        </h3>
+                        
+                        <!-- 内容摘要 -->
+                        <p class="text-sm text-gray-400 mb-3 leading-relaxed">
+                            ${news.content}
+                        </p>
+                        
+                        <!-- 底部信息 -->
+                        <div class="flex items-center space-x-4 text-xs text-gray-500">
+                            <span>📰 ${news.source}</span>
+                            <span>👁️ ${news.views.toLocaleString()}</span>
+                            ${news.comments ? `<span>💬 ${news.comments}</span>` : ''}
+                        </div>
                     </div>
                 </div>
             `).join('');
         }
 
-        function filterNews(category) {
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('bg-blue-600');
-                btn.classList.add('bg-gray-700');
+        function filterNews(category, event) {
+            document.querySelectorAll('.news-tab-btn').forEach(btn => {
+                btn.classList.remove('border-blue-500', 'text-blue-500');
+                btn.classList.add('border-transparent', 'text-gray-400');
             });
-            event.target.classList.remove('bg-gray-700');
-            event.target.classList.add('bg-blue-600');
+            if (event && event.target) {
+                event.target.classList.remove('border-transparent', 'text-gray-400');
+                event.target.classList.add('border-blue-500', 'text-blue-500');
+            }
             renderNews(category);
         }
-
-
-        function renderEconomicCalendar() {
-            const thisWeek = economicData.filter(d => ['12月7日', '12月8日', '12月9日'].includes(d.date));
-            const nextWeek = economicData.filter(d => ['12月12日', '12月13日', '12月14日', '12月19日'].includes(d.date));
-            
-            const weekDataEl = document.getElementById('week-data');
-            const nextWeekDataEl = document.getElementById('next-week-data');
-            
-            if (weekDataEl) {
-                weekDataEl.innerHTML = thisWeek.map(data => `
-                    <div class="bg-gray-700 rounded-lg p-4 ${data.status === 'published' ? 'border-l-4 border-green-500' : 'border-l-4 border-blue-500'}">
-                        <div class="flex items-start justify-between mb-2">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <span class="text-lg">${data.country}</span>
-                                    <span class="text-yellow-400">${'⭐'.repeat(data.importance)}</span>
-                                </div>
-                                <div class="font-semibold text-white">${data.event}</div>
-                            </div>
-                            <div class="text-right">
-                                <div class="text-sm font-semibold ${data.status === 'published' ? 'text-green-400' : 'text-blue-400'}">
-                                    ${data.status === 'published' ? '✓ 已公布' : '待公布'}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between text-sm text-gray-400 mt-3">
-                            <span>📅 ${data.date} ${data.time}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
-                            <div class="bg-gray-800 rounded p-2">
-                                <div class="text-gray-500">前值</div>
-                                <div class="text-white font-semibold">${data.previous}</div>
-                            </div>
-                            <div class="bg-gray-800 rounded p-2">
-                                <div class="text-gray-500">预测</div>
-                                <div class="text-yellow-400 font-semibold">${data.forecast}</div>
-                            </div>
-                            <div class="bg-gray-800 rounded p-2">
-                                <div class="text-gray-500">实际</div>
-                                <div class="${data.actual ? 'text-green-400' : 'text-gray-600'} font-semibold">
-                                    ${data.actual || '--'}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            if (nextWeekDataEl) {
-                nextWeekDataEl.innerHTML = nextWeek.map(data => `
-                    <div class="bg-gray-700 rounded-lg p-4 border-l-4 border-purple-500">
-                        <div class="flex items-start justify-between mb-2">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-1">
-                                    <span class="text-lg">${data.country}</span>
-                                    <span class="text-yellow-400">${'⭐'.repeat(data.importance)}</span>
-                                </div>
-                                <div class="font-semibold text-white">${data.event}</div>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-between text-sm text-gray-400 mt-3">
-                            <span>📅 ${data.date} ${data.time}</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
-                            <div class="bg-gray-800 rounded p-2">
-                                <div class="text-gray-500">前值</div>
-                                <div class="text-white font-semibold">${data.previous}</div>
-                            </div>
-                            <div class="bg-gray-800 rounded p-2">
-                                <div class="text-gray-500">预测</div>
-                                <div class="text-yellow-400 font-semibold">${data.forecast}</div>
-                            </div>
-                        </div>
-                    </div>
-                `).join('');
-            }
-            
-            // 渲染月度日历
-            const calendarGridEl = document.getElementById('calendar-grid');
-            if (calendarGridEl) {
-                const daysInMonth = 31;
-                const calendarHTML = ['日', '一', '二', '三', '四', '五', '六'].map(day => 
-                    `<div class="text-center font-semibold text-gray-400 py-2">${day}</div>`
-                ).join('');
-                
-                let daysHTML = '';
-                for (let i = 1; i <= daysInMonth; i++) {
-                    const hasEvent = economicData.some(d => d.date.includes(`${i}日`));
-                    const eventImportance = hasEvent ? Math.max(...economicData.filter(d => d.date.includes(`${i}日`)).map(d => d.importance)) : 0;
-                    daysHTML += `
-                        <div class="aspect-square bg-gray-700 rounded p-2 text-center ${hasEvent ? 'border-2 border-yellow-500' : ''}">
-                            <div class="text-sm font-semibold">${i}</div>
-                            ${hasEvent ? `<div class="text-xs text-yellow-400 mt-1">${'⭐'.repeat(eventImportance)}</div>` : ''}
-                        </div>
-                    `;
-                }
-                
-                calendarGridEl.innerHTML = calendarHTML + daysHTML;
-            }
+        
+        function loadMoreNews() {
+            // 加载更多新闻的功能（可以后续实现）
+            alert('加载更多功能开发中...');
         }
+
 
         // 社区帖子数据（使用localStorage持久化）
         let posts = JSON.parse(localStorage.getItem('community_posts') || '[]');
@@ -821,6 +1634,19 @@
         }
 
         function createPost() {
+            // 检查登录状态
+            if (!isLoggedIn) {
+                alert('请先登录才能发帖');
+                showLoginModal();
+                return;
+            }
+            
+            // 检查权限
+            if (!checkPermission('canPost')) {
+                alert('您没有发帖权限');
+                return;
+            }
+            
             const textarea = document.getElementById('new-post');
             const content = textarea.value.trim();
             
@@ -831,7 +1657,10 @@
             
             const newPost = {
                 id: Date.now(),
-                user: '我',
+                user: currentUser.username,
+                userId: currentUser.id,
+                avatar: currentUser.avatar,
+                userType: userType,
                 content: content,
                 likes: 0,
                 likedBy: [],
@@ -1214,12 +2043,402 @@
             alert(`✅ 预测创建成功！\n\n类型：${isRewardPrediction ? '有奖预测' : '无奖预测'}\n${isRewardPrediction ? `每人投注：${selectedRewardAmount} USDT` : ''}\n\n今日剩余：\n• 有奖预测：${1 - userStats.rewardPredictionsToday}次\n• 无奖预测：${10 - userStats.freePredictionsToday}次`);
         }
 
+        // ========== 认证系统函数 ==========
+        
+        // 显示登录模态框
+        function showLoginModal() {
+            document.getElementById('auth-modal').style.display = 'flex';
+            document.getElementById('login-form').style.display = 'block';
+            document.getElementById('register-form').style.display = 'none';
+        }
+        
+        // 关闭认证模态框
+        function closeAuthModal() {
+            document.getElementById('auth-modal').style.display = 'none';
+            // 清空表单
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('register-username').value = '';
+            document.getElementById('register-email').value = '';
+            document.getElementById('register-password').value = '';
+            document.getElementById('register-password-confirm').value = '';
+        }
+        
+        // 切换到注册表单
+        function switchToRegister() {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('register-form').style.display = 'block';
+        }
+        
+        // 切换到登录表单
+        function switchToLogin() {
+            document.getElementById('register-form').style.display = 'none';
+            document.getElementById('login-form').style.display = 'block';
+        }
+        
+        // 处理注册
+        async function handleRegister() {
+            const username = document.getElementById('register-username').value.trim();
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const passwordConfirm = document.getElementById('register-password-confirm').value;
+            
+            // 验证输入
+            if (!username || username.length < 3 || username.length > 20) {
+                alert('用户名长度必须在3-20个字符之间');
+                return;
+            }
+            
+            if (!email || !email.includes('@')) {
+                alert('请输入有效的邮箱地址');
+                return;
+            }
+            
+            if (!password || password.length < 6) {
+                alert('密码长度至少6个字符');
+                return;
+            }
+            
+            if (password !== passwordConfirm) {
+                alert('两次输入的密码不一致');
+                return;
+            }
+            
+            // 检查用户名是否已存在
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            if (users.find(u => u.username === username)) {
+                alert('用户名已存在，请换一个');
+                return;
+            }
+            
+            if (users.find(u => u.email === email)) {
+                alert('邮箱已被注册');
+                return;
+            }
+            
+            // 创建新用户
+            const newUser = {
+                id: Date.now(),
+                username: username,
+                email: email,
+                password: password, // 实际项目中应该加密
+                userType: 'user', // 默认为普通用户
+                isMember: false,
+                createdAt: new Date().toISOString(),
+                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`
+            };
+            
+            users.push(newUser);
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            alert('✅ 注册成功！请登录');
+            switchToLogin();
+        }
+        
+        // 处理登录
+        async function handleLogin() {
+            const usernameOrEmail = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            
+            if (!usernameOrEmail || !password) {
+                alert('请输入用户名和密码');
+                return;
+            }
+            
+            // 查找用户
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const user = users.find(u => 
+                (u.username === usernameOrEmail || u.email === usernameOrEmail) && 
+                u.password === password
+            );
+            
+            if (!user) {
+                alert('用户名或密码错误');
+                return;
+            }
+            
+            // 登录成功
+            currentUser = user;
+            isLoggedIn = true;
+            isMember = user.isMember;
+            userType = user.isMember ? 'member' : 'user';
+            
+            // 保存登录状态
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('isLoggedIn', 'true');
+            
+            // 加载用户统计
+            loadUserStats();
+            
+            // 更新 UI
+            updateUserStatus();
+            closeAuthModal();
+            
+            alert(`✅ 欢迎回来，${user.username}！`);
+        }
+        
+        // 退出登录
+        function handleLogout() {
+            if (confirm('确定要退出登录吗？')) {
+                currentUser = null;
+                isLoggedIn = false;
+                isMember = false;
+                userType = 'guest';
+                
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('isLoggedIn');
+                
+                updateUserStatus();
+                alert('已退出登录');
+                
+                // 如果在社区或预测页面，刷新显示
+                renderPosts();
+                renderPredictions();
+            }
+        }
+        
+        // 更新用户状态显示
+        function updateUserStatus() {
+            const statusDiv = document.getElementById('user-status');
+            
+            if (isLoggedIn && currentUser) {
+                statusDiv.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <img src="${currentUser.avatar}" alt="${currentUser.username}" 
+                            class="w-8 h-8 rounded-full border-2 border-gray-600">
+                        <div class="flex flex-col">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-semibold">${currentUser.username}</span>
+                                ${isMember ? '<span class="text-xs px-2 py-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 rounded">👑 会员</span>' : '<span class="text-xs px-2 py-0.5 bg-gray-700 rounded">普通用户</span>'}
+                            </div>
+                        </div>
+                        <button onclick="handleLogout()" class="text-gray-400 hover:text-white text-sm">
+                            退出
+                        </button>
+                    </div>
+                `;
+            } else {
+                statusDiv.innerHTML = `
+                    <button onclick="showLoginModal()" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm">
+                        登录 / 注册
+                    </button>
+                `;
+            }
+        }
+        
+        // 检查登录状态
+        function checkLoginStatus() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedLoginStatus = localStorage.getItem('isLoggedIn');
+            
+            if (savedUser && savedLoginStatus === 'true') {
+                currentUser = JSON.parse(savedUser);
+                isLoggedIn = true;
+                isMember = currentUser.isMember;
+                userType = currentUser.isMember ? 'member' : 'user';
+                loadUserStats();
+                updateUserStatus();
+            }
+        }
+        
         function showMembershipModal() {
+            if (!isLoggedIn) {
+                alert('请先登录账号');
+                showLoginModal();
+                return;
+            }
             document.getElementById('membership-modal').style.display = 'flex';
         }
 
         function closeMembershipModal() {
             document.getElementById('membership-modal').style.display = 'none';
+        }
+        
+        // ========== 支付二维码功能 ==========
+        
+        // 平台收款地址（BSC 链）
+        const PLATFORM_PAYMENT_ADDRESS = '0xAC061A7998ee4EDe184248e19F4C3Afc5Eab53B9';
+        
+        // 显示支付二维码
+        function showPaymentQRCode() {
+            if (!isLoggedIn) {
+                alert('请先登录账号');
+                closeMembershipModal();
+                showLoginModal();
+                return;
+            }
+            
+            // 关闭会员模态框
+            closeMembershipModal();
+            
+            // 显示支付二维码模态框
+            document.getElementById('payment-qr-modal').style.display = 'flex';
+            
+            // 生成二维码
+            generatePaymentQRCode();
+        }
+        
+        // 生成支付二维码
+        function generatePaymentQRCode() {
+            const qrcodeDiv = document.getElementById('payment-qrcode');
+            
+            // 清空之前的二维码
+            qrcodeDiv.innerHTML = '';
+            
+            // 生成新的二维码
+            try {
+                new QRCode(qrcodeDiv, {
+                    text: PLATFORM_PAYMENT_ADDRESS,
+                    width: 200,
+                    height: 200,
+                    colorDark: '#000000',
+                    colorLight: '#ffffff',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (error) {
+                console.error('生成二维码失败:', error);
+                qrcodeDiv.innerHTML = '<div class="text-center text-red-500 text-sm">二维码生成失败</div>';
+            }
+        }
+        
+        // 关闭支付二维码模态框
+        function closePaymentQRModal() {
+            document.getElementById('payment-qr-modal').style.display = 'none';
+        }
+        
+        // 复制支付地址
+        function copyPaymentAddress() {
+            const addressInput = document.getElementById('payment-address');
+            
+            // 选中文本
+            addressInput.select();
+            addressInput.setSelectionRange(0, 99999); // 移动端兼容
+            
+            // 复制到剪贴板
+            try {
+                // 现代浏览器方法
+                navigator.clipboard.writeText(PLATFORM_PAYMENT_ADDRESS).then(() => {
+                    showToast('✅ 地址已复制到剪贴板');
+                }).catch(() => {
+                    // 降级方案
+                    document.execCommand('copy');
+                    showToast('✅ 地址已复制到剪贴板');
+                });
+            } catch (error) {
+                // 最后的降级方案
+                try {
+                    document.execCommand('copy');
+                    showToast('✅ 地址已复制到剪贴板');
+                } catch (e) {
+                    alert('复制失败，请手动复制地址');
+                }
+            }
+        }
+        
+        // 确认支付完成
+        function confirmPayment() {
+            if (!isLoggedIn || !currentUser) {
+                alert('请先登录');
+                closePaymentQRModal();
+                showLoginModal();
+                return;
+            }
+            
+            // 显示确认对话框
+            const confirmed = confirm(
+                '请确认您已完成支付：\n\n' +
+                '• 支付金额：1 USDT\n' +
+                '• 网络：BSC (BEP20)\n' +
+                '• 收款地址：' + PLATFORM_PAYMENT_ADDRESS.slice(0, 10) + '...' + PLATFORM_PAYMENT_ADDRESS.slice(-8) + '\n\n' +
+                '支付通常需要几分钟确认，我们会在确认后为您开通会员权限。\n\n' +
+                '如有问题，请联系客服。'
+            );
+            
+            if (confirmed) {
+                // 记录支付请求
+                const paymentRecord = {
+                    userId: currentUser.id,
+                    username: currentUser.username,
+                    amount: 1,
+                    currency: 'USDT',
+                    network: 'BSC',
+                    address: PLATFORM_PAYMENT_ADDRESS,
+                    timestamp: new Date().toISOString(),
+                    status: 'pending' // pending, confirmed, failed
+                };
+                
+                // 保存到 localStorage（实际项目中应该发送到后端）
+                const payments = JSON.parse(localStorage.getItem('payment_records') || '[]');
+                payments.push(paymentRecord);
+                localStorage.setItem('payment_records', JSON.stringify(payments));
+                
+                // 关闭模态框
+                closePaymentQRModal();
+                
+                // 显示成功提示
+                alert(
+                    '✅ 支付请求已提交！\n\n' +
+                    '我们会在确认您的支付后（通常1-5分钟）自动为您开通会员权限。\n\n' +
+                    '您可以继续使用平台的其他功能，会员权限开通后会有通知。\n\n' +
+                    '如有疑问，请联系客服。'
+                );
+                
+                // 可选：自动升级为会员（演示用）
+                // 实际项目中应该等待后端确认支付
+                if (confirm('【演示模式】是否立即开通会员权限？\n\n（实际项目中需要等待区块链确认）')) {
+                    upgradToMember();
+                }
+            }
+        }
+        
+        // 升级为会员
+        function upgradToMember() {
+            if (!currentUser) return;
+            
+            // 更新用户状态
+            currentUser.isMember = true;
+            currentUser.userType = 'member';
+            isMember = true;
+            userType = 'member';
+            
+            // 更新 localStorage
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
+            
+            // 更新用户列表
+            const users = JSON.parse(localStorage.getItem('users') || '[]');
+            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            if (userIndex !== -1) {
+                users[userIndex].isMember = true;
+                users[userIndex].userType = 'member';
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // 更新 UI
+            updateUserStatus();
+            renderPredictions();
+            
+            // 显示成功消息
+            showToast('🎉 恭喜成为会员！已解锁全部功能');
+        }
+        
+        // Toast 提示函数
+        function showToast(message) {
+            // 创建 toast 元素
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg z-50 border border-gray-700';
+            toast.textContent = message;
+            
+            // 添加到页面
+            document.body.appendChild(toast);
+            
+            // 3秒后移除
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 300);
+            }, 3000);
         }
 
         async function becomeMember() {
@@ -1414,8 +2633,26 @@
             }
         });
         
+        document.getElementById('auth-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAuthModal();
+            }
+        });
+        
+        document.getElementById('payment-qr-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePaymentQRModal();
+            }
+        });
+        
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
+            // 检查登录状态
+            checkLoginStatus();
+            
+            // 加载用户统计
+            loadUserStats();
+            
             // 加载行情数据
             loadCryptoPrices();
             // 每30秒更新一次
@@ -1424,10 +2661,8 @@
             // 加载新闻数据
             loadNews();
             
-            // 初始化日历
-            if (typeof initCalendar === 'function') {
-                initCalendar();
-            }
+            // 加载经济数据
+            loadEconomicData();
             
             // 渲染社区帖子
             if (typeof renderPosts === 'function') {
