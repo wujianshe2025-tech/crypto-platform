@@ -176,25 +176,16 @@
                     <p class="text-gray-400 text-sm">参与预测，赢取奖励 🎯</p>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <div id="member-status" class="text-sm">
-                        ${isMember ? 
-                            '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>' : 
-                            '<button onclick="showMembershipModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold">成为会员</button>'
-                        }
+                    <div id="prediction-member-status" class="text-sm">
+                        <!-- 会员状态将通过 JavaScript 动态更新 -->
                     </div>
-                    <button onclick="toggleCreatePrediction()" class="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg hover:from-green-700 hover:to-teal-700 font-semibold shadow-lg">+ 发起预测</button>
+                    <button onclick="showPredictionTypeModal()" class="px-6 py-2 bg-gradient-to-r from-green-600 to-teal-600 rounded-lg hover:from-green-700 hover:to-teal-700 font-semibold shadow-lg">+ 发起预测</button>
                 </div>
             </div>
             
-            <!-- 会员提示 -->
-            <div id="member-notice" class="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/50 rounded-lg p-4 mb-6">
-                <div class="flex items-center space-x-3">
-                    <span class="text-3xl">👑</span>
-                    <div class="flex-1">
-                        <div class="font-semibold text-yellow-400 mb-1">会员专享功能</div>
-                        <div class="text-sm text-gray-300">仅需 1 USDT 即可成为会员，解锁发起预测和参与投票功能，预测准确还能获得加密货币奖励！</div>
-                    </div>
-                </div>
+            <!-- 用户权限提示 -->
+            <div id="prediction-notice" class="mb-6">
+                <!-- 权限提示将通过 JavaScript 动态更新 -->
             </div>
 
             <!-- 平台激励基金 -->
@@ -220,31 +211,49 @@
                 </h2>
                 
                 <!-- 今日发起统计 -->
-                <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 mb-4 text-sm">
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-300">今日已发起：</span>
-                        <div class="flex items-center space-x-4">
-                            <span class="text-green-400">有奖 ${userStats.rewardPredictionsToday}/1</span>
-                            <span class="text-blue-400">无奖 ${userStats.freePredictionsToday}/10</span>
-                        </div>
-                    </div>
+                <div id="prediction-stats" class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 mb-4 text-sm">
+                    <!-- 统计信息将通过 JavaScript 动态更新 -->
                 </div>
 
-                <input id="pred-title" type="text" placeholder="预测标题" class="w-full bg-gray-700 rounded-lg p-3 text-white mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                <input id="pred-title" type="text" placeholder="例如：特朗普先生今天戴什么颜色的领带？" class="w-full bg-gray-700 rounded-lg p-3 text-white mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 <textarea id="pred-desc" placeholder="预测描述（可选）" class="w-full bg-gray-700 rounded-lg p-3 text-white resize-none mb-4 focus:ring-2 focus:ring-blue-500 focus:outline-none" rows="3"></textarea>
                 
-                <!-- 奖金设置 -->
-                <div class="bg-gray-700 rounded-lg p-4 mb-4">
+                <!-- 预测类型切换 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">预测类型</label>
+                    <div class="flex space-x-2">
+                        <button id="free-type-btn" onclick="switchPredictionType('free')" class="flex-1 py-2 bg-blue-600 rounded-lg text-sm font-semibold">
+                            🎯 无奖预测
+                        </button>
+                        <button id="reward-type-btn" onclick="switchPredictionType('reward')" class="flex-1 py-2 bg-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-600">
+                            💰 有奖预测
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 投票选项设置 -->
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">投票选项数量</label>
+                    <div class="flex space-x-2">
+                        <button onclick="setOptionCount(2)" class="option-count-btn flex-1 py-2 bg-blue-600 rounded-lg text-sm font-semibold">2个</button>
+                        <button onclick="setOptionCount(3)" class="option-count-btn flex-1 py-2 bg-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-600">3个</button>
+                        <button onclick="setOptionCount(4)" class="option-count-btn flex-1 py-2 bg-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-600">4个</button>
+                        <button onclick="setOptionCount(5)" class="option-count-btn flex-1 py-2 bg-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-600">5个</button>
+                    </div>
+                </div>
+                
+                <!-- 选项输入框容器 -->
+                <div id="options-container" class="mb-4">
+                    <!-- 动态生成的选项输入框 -->
+                </div>
+                
+                <!-- 奖金设置（仅有奖预测显示） -->
+                <div id="reward-settings-container" class="bg-gray-700 rounded-lg p-4 mb-4" style="display: none;">
                     <div class="flex items-center justify-between mb-3">
-                        <label class="font-semibold">预测类型</label>
-                        <div class="flex items-center space-x-2">
-                            <button id="reward-toggle" onclick="toggleRewardType()" class="px-4 py-2 bg-green-600 rounded-lg text-sm font-semibold">
-                                💰 有奖预测
-                            </button>
-                        </div>
+                        <label class="font-semibold">奖金设置</label>
                     </div>
                     
-                    <div id="reward-settings" class="space-y-3">
+                    <div class="space-y-3">
                         <div>
                             <label class="text-sm text-gray-400 mb-2 block">每人投注金额（USDT）</label>
                             <div class="flex space-x-2">
@@ -480,6 +489,93 @@
                 </button>
                 
                 <button onclick="closePaymentQRModal()" class="w-full px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
+                    取消
+                </button>
+            </div>
+        </div>
+
+        <!-- 预测类型选择弹窗 -->
+        <div id="prediction-type-modal" class="fixed inset-0 bg-black/80 hidden items-center justify-center z-50" style="display: none;">
+            <div class="bg-gray-800 rounded-xl p-8 max-w-2xl mx-4 shadow-2xl border border-gray-700">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold mb-2">选择预测类型</h2>
+                    <p class="text-gray-400 text-sm">请选择您要发起的预测类型</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- 无奖预测 -->
+                    <div class="bg-gradient-to-br from-blue-900/30 to-cyan-900/30 border-2 border-blue-500/50 rounded-xl p-6 hover:border-blue-400 transition cursor-pointer" onclick="selectPredictionType('free')">
+                        <div class="text-center mb-4">
+                            <div class="text-5xl mb-3">🎯</div>
+                            <h3 class="text-xl font-bold mb-2">无奖预测</h3>
+                            <div class="text-sm text-gray-400">免费发起，纯粹预测</div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm mb-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-green-400">✓</span>
+                                <span>完全免费</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-green-400">✓</span>
+                                <span>无需支付</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-green-400">✓</span>
+                                <span>所有用户可参与投票</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-green-400">✓</span>
+                                <span>无奖金池</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-blue-900/30 rounded-lg p-3 text-center">
+                            <div class="text-xs text-gray-400 mb-1">每日限制</div>
+                            <div class="font-semibold text-sm">
+                                普通用户：3次/天<br>
+                                会员用户：10次/天
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 有奖预测 -->
+                    <div class="bg-gradient-to-br from-yellow-900/30 to-orange-900/30 border-2 border-yellow-500/50 rounded-xl p-6 hover:border-yellow-400 transition cursor-pointer" onclick="selectPredictionType('reward')">
+                        <div class="text-center mb-4">
+                            <div class="text-5xl mb-3">💰</div>
+                            <h3 class="text-xl font-bold mb-2">有奖预测</h3>
+                            <div class="text-sm text-gray-400">设置奖金池，赢取奖励</div>
+                        </div>
+                        
+                        <div class="space-y-2 text-sm mb-4">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-400">★</span>
+                                <span>设置奖金池</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-400">★</span>
+                                <span>预测准确获得奖励</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-400">★</span>
+                                <span>所有用户可参与投票</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-400">★</span>
+                                <span>需要会员权限</span>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-yellow-900/30 rounded-lg p-3 text-center">
+                            <div class="text-xs text-gray-400 mb-1">每日限制</div>
+                            <div class="font-semibold text-yellow-400 text-sm">
+                                会员专享：3次/天
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button onclick="closePredictionTypeModal()" class="w-full px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
                     取消
                 </button>
             </div>
@@ -1036,8 +1132,8 @@
                 canCreateFreePrediction: true,
                 canCreateRewardPrediction: true,
                 canVote: true,
-                freePredictionsPerDay: 3,
-                rewardPredictionsPerDay: 5
+                freePredictionsPerDay: 10,
+                rewardPredictionsPerDay: 3
             }
         };
         
@@ -1818,6 +1914,11 @@
 
         // 渲染预测
         function renderPredictions() {
+            // 更新预测页面的状态显示
+            updatePredictionMemberStatus();
+            updatePredictionNotice();
+            updatePredictionStats();
+            
             document.getElementById('predictions-list').innerHTML = predictions.map(pred => {
                 const total = pred.options.reduce((sum, opt) => sum + opt.votes, 0);
                 const userVoted = pred.options.some(opt => opt.voted);
@@ -1893,9 +1994,9 @@
                                             </div>
                                             <div class="text-xs text-gray-400 mt-2 flex items-center justify-between">
                                                 <span>${opt.votes} 人投票</span>
-                                                ${!isMember ? '<span class="text-yellow-400">🔒 会员可投票</span>' : 
-                                                  pred.hasReward ? `<span class="text-green-400">💰 ${pred.rewardPerPerson} USDT</span>` : 
-                                                  '<span class="text-blue-400">免费投票</span>'}
+                                                ${pred.hasReward ? 
+                                                    (isMember ? `<span class="text-green-400">💰 ${pred.rewardPerPerson} USDT</span>` : '<span class="text-yellow-400">🔒 会员可投票</span>') : 
+                                                    '<span class="text-blue-400">👆 点击投票</span>'}
                                             </div>
                                         </button>
                                     </div>
@@ -1926,20 +2027,25 @@
         }
 
         function votePrediction(predId, optionIndex) {
-            if (!isMember) {
-                showMembershipModal();
-                return;
-            }
-            
             const pred = predictions.find(p => p.id === predId);
             if (!pred) return;
             
             // 检查是否已投票
             const alreadyVoted = pred.options.some(opt => opt.voted);
             
-            if (pred.hasReward && !alreadyVoted) {
-                const confirm = window.confirm(`💰 投票需要支付 ${pred.rewardPerPerson} USDT\n\n预测准确将获得奖金分成！\n确认投票吗？`);
-                if (!confirm) return;
+            // 有奖预测需要会员权限
+            if (pred.hasReward) {
+                if (!isMember) {
+                    alert('💰 有奖预测投票需要会员权限\n\n升级会员后可参与有奖预测投票！');
+                    showMembershipModal();
+                    return;
+                }
+                
+                // 确认支付
+                if (!alreadyVoted) {
+                    const confirm = window.confirm(`💰 投票需要支付 ${pred.rewardPerPerson} USDT\n\n预测准确将获得奖金分成！\n确认投票吗？`);
+                    if (!confirm) return;
+                }
             }
             
             predictions = predictions.map(p => {
@@ -1974,21 +2080,64 @@
             }
         }
 
-        function toggleCreatePrediction() {
-            if (!isMember) {
-                showMembershipModal();
-                return;
+        function toggleCreatePrediction(isReward = false) {
+            // 显示创建预测表单
+            const createForm = document.getElementById('create-prediction');
+            if (createForm) {
+                createForm.classList.toggle('hidden');
+                
+                // 根据类型设置表单
+                if (!createForm.classList.contains('hidden')) {
+                    // 初始化表单
+                    initPredictionForm(isReward ? 'reward' : 'free');
+                    // 更新统计信息
+                    updatePredictionStats();
+                }
             }
-            document.getElementById('create-prediction').classList.toggle('hidden');
         }
 
         function createPrediction() {
-            if (!isMember) {
+            // 1. 获取基本信息
+            const title = document.getElementById('pred-title').value.trim();
+            const desc = document.getElementById('pred-desc').value.trim();
+            
+            if (!title) {
+                alert('请输入预测标题');
+                return;
+            }
+            
+            // 2. 获取选项
+            const options = [];
+            for (let i = 1; i <= optionCount; i++) {
+                const optionInput = document.getElementById(`option-${i}`);
+                if (!optionInput) {
+                    alert('选项输入框未找到，请刷新页面重试');
+                    return;
+                }
+                
+                const optionValue = optionInput.value.trim();
+                if (!optionValue) {
+                    alert(`请填写选项 ${i}`);
+                    return;
+                }
+                
+                options.push({
+                    text: optionValue,
+                    votes: 0,
+                    voted: false
+                });
+            }
+            
+            // 3. 检查预测类型和权限
+            const isRewardPrediction = currentPredictionType === 'reward';
+            
+            if (isRewardPrediction && !isMember) {
+                alert('有奖预测需要会员权限');
                 showMembershipModal();
                 return;
             }
             
-            // 检查每日限制
+            // 4. 检查每日限制
             checkDailyReset();
             
             if (isRewardPrediction) {
@@ -2003,19 +2152,13 @@
                 }
             }
             
-            const title = document.getElementById('pred-title').value;
-            const desc = document.getElementById('pred-desc').value;
-            if (!title.trim()) {
-                alert('请输入预测标题');
-                return;
-            }
-            
+            // 5. 创建预测对象
             const newPrediction = {
                 id: Date.now(),
-                creator: '我',
-                title,
+                creator: currentUser ? currentUser.username : '我',
+                title: title,
                 desc: desc || '无描述',
-                options: [{text: '是', votes: 0, voted: false}, {text: '否', votes: 0, voted: false}],
+                options: options,
                 hasReward: isRewardPrediction,
                 rewardPerPerson: isRewardPrediction ? selectedRewardAmount : 0,
                 totalPool: 0,
@@ -2023,24 +2166,40 @@
                 platformFee: 0,
                 winnerPool: 0,
                 deadline: '7天',
-                status: 'active'
+                status: 'active',
+                createdAt: new Date().toISOString()
             };
             
+            // 6. 保存预测
             predictions.unshift(newPrediction);
+            localStorage.setItem('predictions', JSON.stringify(predictions));
             
-            // 更新统计
+            // 7. 更新统计
             if (isRewardPrediction) {
                 userStats.rewardPredictionsToday++;
             } else {
                 userStats.freePredictionsToday++;
             }
+            localStorage.setItem('userStats', JSON.stringify(userStats));
             
+            // 8. 清空表单
             document.getElementById('pred-title').value = '';
             document.getElementById('pred-desc').value = '';
+            for (let i = 1; i <= optionCount; i++) {
+                const input = document.getElementById(`option-${i}`);
+                if (input) input.value = '';
+            }
+            
+            // 9. 刷新显示
             toggleCreatePrediction();
             renderPredictions();
+            updatePredictionStats();
             
-            alert(`✅ 预测创建成功！\n\n类型：${isRewardPrediction ? '有奖预测' : '无奖预测'}\n${isRewardPrediction ? `每人投注：${selectedRewardAmount} USDT` : ''}\n\n今日剩余：\n• 有奖预测：${1 - userStats.rewardPredictionsToday}次\n• 无奖预测：${10 - userStats.freePredictionsToday}次`);
+            // 10. 显示成功消息
+            const freeRemaining = getDailyLimit('free') - userStats.freePredictionsToday;
+            const rewardRemaining = getDailyLimit('reward') - userStats.rewardPredictionsToday;
+            
+            alert(`✅ 预测创建成功！\n\n标题：${title}\n类型：${isRewardPrediction ? '有奖预测' : '无奖预测'}\n选项：${options.map(opt => opt.text).join('、')}${isRewardPrediction ? `\n每人投注：${selectedRewardAmount} USDT` : ''}\n\n今日剩余：\n• 有奖预测：${rewardRemaining}次\n• 无奖预测：${freeRemaining}次`);
         }
 
         // ========== 认证系统函数 ==========
@@ -2440,6 +2599,259 @@
                 }, 300);
             }, 3000);
         }
+        
+        // ========== 预测类型选择功能 ==========
+        
+        // 显示预测类型选择模态框
+        function showPredictionTypeModal() {
+            if (!isLoggedIn) {
+                alert('请先登录才能发起预测');
+                showLoginModal();
+                return;
+            }
+            
+            document.getElementById('prediction-type-modal').style.display = 'flex';
+        }
+        
+        // 关闭预测类型选择模态框
+        function closePredictionTypeModal() {
+            document.getElementById('prediction-type-modal').style.display = 'none';
+        }
+        
+        // 选择预测类型
+        function selectPredictionType(type) {
+            closePredictionTypeModal();
+            
+            if (type === 'free') {
+                // 无奖预测
+                if (!checkPermission('canCreateFreePrediction')) {
+                    alert('您没有发起无奖预测的权限，请先登录');
+                    showLoginModal();
+                    return;
+                }
+                
+                if (!checkDailyLimit('free')) {
+                    const limit = getDailyLimit('free');
+                    alert(`您今天的无奖预测次数已用完！\n\n每日限制：${limit}次\n已使用：${userStats.freePredictionsToday}次`);
+                    return;
+                }
+                
+                // 显示无奖预测创建表单
+                toggleCreatePrediction(false);
+                
+            } else if (type === 'reward') {
+                // 有奖预测
+                if (!isMember) {
+                    alert('有奖预测需要会员权限\n\n请先成为会员解锁此功能');
+                    showMembershipModal();
+                    return;
+                }
+                
+                if (!checkPermission('canCreateRewardPrediction')) {
+                    alert('您没有发起有奖预测的权限');
+                    return;
+                }
+                
+                if (!checkDailyLimit('reward')) {
+                    const limit = getDailyLimit('reward');
+                    alert(`您今天的有奖预测次数已用完！\n\n每日限制：${limit}次\n已使用：${userStats.rewardPredictionsToday}次`);
+                    return;
+                }
+                
+                // 显示有奖预测创建表单
+                toggleCreatePrediction(true);
+            }
+        }
+        
+        // 更新预测页面的会员状态显示
+        function updatePredictionMemberStatus() {
+            const statusDiv = document.getElementById('prediction-member-status');
+            if (!statusDiv) return;
+            
+            if (isMember) {
+                statusDiv.innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
+            } else if (isLoggedIn) {
+                statusDiv.innerHTML = '<button onclick="showMembershipModal()" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg hover:from-blue-700 hover:to-purple-700 font-semibold">成为会员</button>';
+            } else {
+                statusDiv.innerHTML = '';
+            }
+        }
+        
+        // ========== 预测表单功能 ==========
+        
+        let currentPredictionType = 'free'; // 'free' 或 'reward'
+        let optionCount = 2; // 默认2个选项
+        
+        // 切换预测类型
+        function switchPredictionType(type) {
+            currentPredictionType = type;
+            
+            // 更新按钮样式
+            const freeBtn = document.getElementById('free-type-btn');
+            const rewardBtn = document.getElementById('reward-type-btn');
+            const rewardSettings = document.getElementById('reward-settings-container');
+            
+            if (type === 'free') {
+                freeBtn.classList.add('bg-blue-600');
+                freeBtn.classList.remove('bg-gray-700');
+                rewardBtn.classList.add('bg-gray-700');
+                rewardBtn.classList.remove('bg-yellow-600');
+                
+                // 隐藏奖金设置
+                if (rewardSettings) {
+                    rewardSettings.style.display = 'none';
+                }
+            } else {
+                // 检查会员权限
+                if (!isMember) {
+                    alert('有奖预测需要会员权限\n\n请先成为会员');
+                    showMembershipModal();
+                    // 切换回无奖预测
+                    switchPredictionType('free');
+                    return;
+                }
+                
+                freeBtn.classList.add('bg-gray-700');
+                freeBtn.classList.remove('bg-blue-600');
+                rewardBtn.classList.add('bg-yellow-600');
+                rewardBtn.classList.remove('bg-gray-700');
+                
+                // 显示奖金设置
+                if (rewardSettings) {
+                    rewardSettings.style.display = 'block';
+                }
+            }
+        }
+        
+        // 设置选项数量
+        function setOptionCount(count) {
+            optionCount = count;
+            
+            // 更新按钮样式
+            document.querySelectorAll('.option-count-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            });
+            event.target.classList.add('bg-blue-600');
+            event.target.classList.remove('bg-gray-700');
+            
+            // 生成选项输入框
+            generateOptionInputs(count);
+        }
+        
+        // 生成选项输入框
+        function generateOptionInputs(count) {
+            const container = document.getElementById('options-container');
+            if (!container) return;
+            
+            let html = '';
+            const placeholders = ['红色', '黑色', '蓝色', '白色', '绿色'];
+            
+            for (let i = 1; i <= count; i++) {
+                html += `
+                    <div class="mb-3">
+                        <label class="block text-sm text-gray-400 mb-1">选项 ${i}</label>
+                        <input id="option-${i}" type="text" 
+                            placeholder="例如：${placeholders[i-1] || '选项' + i}" 
+                            class="w-full bg-gray-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+        
+        // 初始化预测表单
+        function initPredictionForm(type = 'free') {
+            currentPredictionType = type;
+            optionCount = 2;
+            
+            // 设置类型
+            switchPredictionType(type);
+            
+            // 生成默认选项
+            generateOptionInputs(2);
+        }
+        
+        // 更新预测统计信息
+        function updatePredictionStats() {
+            const statsDiv = document.getElementById('prediction-stats');
+            if (!statsDiv) return;
+            
+            if (!isLoggedIn) {
+                statsDiv.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-300">请先登录查看统计</span>
+                    </div>
+                `;
+                return;
+            }
+            
+            const freeLimit = getDailyLimit('free');
+            const rewardLimit = getDailyLimit('reward');
+            const freeUsed = userStats.freePredictionsToday || 0;
+            const rewardUsed = userStats.rewardPredictionsToday || 0;
+            
+            statsDiv.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-300">今日已发起：</span>
+                    <div class="flex items-center space-x-4">
+                        <span class="text-yellow-400">有奖 ${rewardUsed}/${rewardLimit}</span>
+                        <span class="text-blue-400">无奖 ${freeUsed}/${freeLimit}</span>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 更新预测页面的权限提示
+        function updatePredictionNotice() {
+            const noticeDiv = document.getElementById('prediction-notice');
+            if (!noticeDiv) return;
+            
+            if (!isLoggedIn) {
+                noticeDiv.innerHTML = `
+                    <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-3xl">ℹ️</span>
+                            <div class="flex-1">
+                                <div class="font-semibold text-blue-400 mb-1">登录后即可参与</div>
+                                <div class="text-sm text-gray-300">登录后可发起无奖预测、参与投票，成为会员还能发起有奖预测！</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else if (!isMember) {
+                noticeDiv.innerHTML = `
+                    <div class="bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/50 rounded-lg p-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-3xl">👑</span>
+                            <div class="flex-1">
+                                <div class="font-semibold text-yellow-400 mb-1">升级会员解锁更多功能</div>
+                                <div class="text-sm text-gray-300">
+                                    当前权限：无奖预测 ${userStats.freePredictionsToday}/${getDailyLimit('free')} 次<br>
+                                    会员特权：无奖预测 10次/天 + 有奖预测 3次/天
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                noticeDiv.innerHTML = `
+                    <div class="bg-gradient-to-r from-green-900/30 to-teal-900/30 border border-green-500/50 rounded-lg p-4">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-3xl">✨</span>
+                            <div class="flex-1">
+                                <div class="font-semibold text-green-400 mb-1">会员权限已激活</div>
+                                <div class="text-sm text-gray-300">
+                                    今日剩余：无奖预测 ${getDailyLimit('free') - userStats.freePredictionsToday}/${getDailyLimit('free')} 次 | 
+                                    有奖预测 ${getDailyLimit('reward') - userStats.rewardPredictionsToday}/${getDailyLimit('reward')} 次
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
 
         async function becomeMember() {
             if (!currentUser) {
@@ -2642,6 +3054,12 @@
         document.getElementById('payment-qr-modal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closePaymentQRModal();
+            }
+        });
+        
+        document.getElementById('prediction-type-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closePredictionTypeModal();
             }
         });
         
