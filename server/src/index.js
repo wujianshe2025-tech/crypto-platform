@@ -4,6 +4,12 @@ import { Server } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
+import mongoose from 'mongoose';
+
+// 导入路由
+import authRoutes from './routes/auth.js';
+import membershipRoutes from './routes/membership.js';
+import predictionsRoutes from './routes/predictions.js';
 
 dotenv.config();
 
@@ -16,18 +22,37 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
+// 连接MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/crypto-platform';
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('✅ MongoDB 已连接'))
+  .catch(err => console.error('❌ MongoDB 连接失败:', err));
+
+// 注册路由
+app.use('/api/auth', authRoutes);
+app.use('/api/membership', membershipRoutes);
+app.use('/api/predictions', predictionsRoutes);
+
 // 健康检查接口
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
     message: '追风观测后端服务运行中',
     timestamp: new Date().toISOString(),
-    features: ['实时行情', '新闻资讯', '数据日历', '社区论坛', '预测投票']
+    features: ['实时行情', '新闻资讯', '数据日历', '社区论坛', '预测投票'],
+    apis: {
+      auth: '/api/auth/wallet-login',
+      membership: '/api/membership/activate',
+      predictions: '/api/predictions'
+    }
   });
 });
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.json({ 
+    status: 'ok',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
 });
 
 // 获取加密货币行情数据
@@ -119,8 +144,15 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`🚀 服务器运行在端口 ${PORT}`);
-  console.log(`📊 实时行情 API: http://localhost:${PORT}/api/crypto/prices`);
-  console.log(`🌐 WebSocket 已启用`);
-});
+
+// 本地开发时启动服务器
+if (process.env.NODE_ENV !== 'production') {
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 服务器运行在端口 ${PORT}`);
+    console.log(`📊 实时行情 API: http://localhost:${PORT}/api/crypto/prices`);
+    console.log(`🌐 WebSocket 已启用`);
+  });
+}
+
+// 导出 Express app 供 Vercel 使用
+export default app;
