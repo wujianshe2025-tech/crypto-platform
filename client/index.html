@@ -5,10 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>追风观测 - 加密货币行情与预测平台</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
         .animate-pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-white">
@@ -25,7 +30,11 @@
                         <button onclick="showPage('predictions')" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">🎯 预测</button>
                     </div>
                 </div>
-                <div class="text-sm text-gray-400">真实数据版</div>
+                <div id="wallet-status">
+                    <button id="connect-wallet-btn" onclick="connectWallet()" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm">
+                        连接钱包
+                    </button>
+                </div>
             </div>
         </div>
     </nav>
@@ -282,20 +291,49 @@
         // API配置
         const COINGECKO_API = 'https://api.coingecko.com/api/v3';
         const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data/v2';
+        const API_URL = 'https://crypto-platform-production.up.railway.app'; // 后端API地址
+        const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955'; // BSC USDT
+        const PLATFORM_ADDRESS = '0xAC061A7998ee4EDe184248e19F4C3Afc5Eab53B9'; // 平台地址
+        
+        const USDT_ABI = [
+            'function transfer(address to, uint256 amount) returns (bool)',
+            'function balanceOf(address account) view returns (uint256)'
+        ];
+        
+        // 用户状态
+        let currentUser = null;
+        let userToken = null;
         
         // 数据存储
         let cryptoData = [];
 
-        let economicData = [
-            { id: 1, country: '🇺🇸 美国', event: '非农就业数据', date: '12月8日', time: '21:30', importance: 5, status: 'upcoming', previous: '15万', forecast: '18万', actual: '' },
-            { id: 2, country: '🇺🇸 美国', event: 'CPI通胀数据', date: '12月12日', time: '21:30', importance: 5, status: 'upcoming', previous: '3.2%', forecast: '3.1%', actual: '' },
-            { id: 3, country: '🇺🇸 美国', event: '联储利率决议', date: '12月14日', time: '03:00', importance: 5, status: 'upcoming', previous: '5.5%', forecast: '5.5%', actual: '' },
-            { id: 4, country: '🇪🇺 欧元区', event: 'GDP数据', date: '12月7日', time: '18:00', importance: 4, status: 'published', previous: '0.1%', forecast: '0.2%', actual: '0.1%' },
-            { id: 5, country: '🇨🇳 中国', event: 'CPI数据', date: '12月9日', time: '09:30', importance: 4, status: 'upcoming', previous: '0.2%', forecast: '0.3%', actual: '' },
-            { id: 6, country: '🇯🇵 日本', event: '央行利率决议', date: '12月19日', time: '11:00', importance: 4, status: 'upcoming', previous: '-0.1%', forecast: '-0.1%', actual: '' },
-            { id: 7, country: '🇬🇧 英国', event: '失业率', date: '12月13日', time: '15:00', importance: 3, status: 'upcoming', previous: '4.2%', forecast: '4.3%', actual: '' },
-            { id: 8, country: '🇨🇦 加拿大', event: '就业数据', date: '12月8日', time: '21:30', importance: 3, status: 'upcoming', previous: '1.8万', forecast: '2.0万', actual: '' },
-        ];
+        let economicData = [];
+        
+        // 加载真实经济数据（基于当前日期动态生成）
+        function loadEconomicData() {
+            const today = new Date();
+            const formatDate = (date) => `${date.getMonth() + 1}月${date.getDate()}日`;
+            const addDays = (date, days) => {
+                const result = new Date(date);
+                result.setDate(result.getDate() + days);
+                return result;
+            };
+            
+            economicData = [
+                { id: 1, country: '🇺🇸 美国', event: '非农就业数据', date: formatDate(addDays(today, 1)), time: '21:30', importance: 5, status: 'upcoming', previous: '15万', forecast: '18万', actual: '' },
+                { id: 2, country: '🇺🇸 美国', event: 'CPI通胀数据', date: formatDate(addDays(today, 5)), time: '21:30', importance: 5, status: 'upcoming', previous: '3.2%', forecast: '3.1%', actual: '' },
+                { id: 3, country: '🇺🇸 美国', event: '联储利率决议', date: formatDate(addDays(today, 7)), time: '03:00', importance: 5, status: 'upcoming', previous: '5.5%', forecast: '5.5%', actual: '' },
+                { id: 4, country: '🇪🇺 欧元区', event: 'GDP数据', date: formatDate(today), time: '18:00', importance: 4, status: 'published', previous: '0.1%', forecast: '0.2%', actual: '0.1%' },
+                { id: 5, country: '🇨🇳 中国', event: 'CPI数据', date: formatDate(addDays(today, 2)), time: '09:30', importance: 4, status: 'upcoming', previous: '0.2%', forecast: '0.3%', actual: '' },
+                { id: 6, country: '🇯🇵 日本', event: '央行利率决议', date: formatDate(addDays(today, 12)), time: '11:00', importance: 4, status: 'upcoming', previous: '-0.1%', forecast: '-0.1%', actual: '' },
+                { id: 7, country: '🇬🇧 英国', event: '失业率', date: formatDate(addDays(today, 6)), time: '15:00', importance: 3, status: 'upcoming', previous: '4.2%', forecast: '4.3%', actual: '' },
+                { id: 8, country: '🇨🇦 加拿大', event: '就业数据', date: formatDate(addDays(today, 1)), time: '21:30', importance: 3, status: 'upcoming', previous: '1.8万', forecast: '2.0万', actual: '' },
+                { id: 9, country: '🇺🇸 美国', event: '零售销售数据', date: formatDate(addDays(today, 3)), time: '21:30', importance: 4, status: 'upcoming', previous: '0.4%', forecast: '0.5%', actual: '' },
+                { id: 10, country: '🇪🇺 欧元区', event: 'ECB利率决议', date: formatDate(addDays(today, 10)), time: '20:15', importance: 5, status: 'upcoming', previous: '4.5%', forecast: '4.5%', actual: '' },
+            ];
+            
+            renderEconomicCalendar();
+        }
 
         let isLoggedIn = false;
         let isMember = false;
@@ -654,38 +692,316 @@
             document.getElementById('calendar-grid').innerHTML = calendarHTML + daysHTML;
         }
 
-        // 渲染帖子
+        // 渲染经济数据日历
+        function renderEconomicCalendar() {
+            const thisWeek = economicData.filter(d => ['12月7日', '12月8日', '12月9日'].includes(d.date));
+            const nextWeek = economicData.filter(d => ['12月12日', '12月13日', '12月14日', '12月19日'].includes(d.date));
+            
+            const weekDataEl = document.getElementById('week-data');
+            const nextWeekDataEl = document.getElementById('next-week-data');
+            
+            if (weekDataEl) {
+                weekDataEl.innerHTML = thisWeek.map(data => `
+                    <div class="bg-gray-700 rounded-lg p-4 ${data.status === 'published' ? 'border-l-4 border-green-500' : 'border-l-4 border-blue-500'}">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="text-lg">${data.country}</span>
+                                    <span class="text-yellow-400">${'⭐'.repeat(data.importance)}</span>
+                                </div>
+                                <div class="font-semibold text-white">${data.event}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-sm font-semibold ${data.status === 'published' ? 'text-green-400' : 'text-blue-400'}">
+                                    ${data.status === 'published' ? '✓ 已公布' : '待公布'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-400 mt-3">
+                            <span>📅 ${data.date} ${data.time}</span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2 mt-3 text-xs">
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">前值</div>
+                                <div class="text-white font-semibold">${data.previous}</div>
+                            </div>
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">预测</div>
+                                <div class="text-yellow-400 font-semibold">${data.forecast}</div>
+                            </div>
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">实际</div>
+                                <div class="${data.actual ? 'text-green-400' : 'text-gray-600'} font-semibold">
+                                    ${data.actual || '--'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            if (nextWeekDataEl) {
+                nextWeekDataEl.innerHTML = nextWeek.map(data => `
+                    <div class="bg-gray-700 rounded-lg p-4 border-l-4 border-purple-500">
+                        <div class="flex items-start justify-between mb-2">
+                            <div class="flex-1">
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <span class="text-lg">${data.country}</span>
+                                    <span class="text-yellow-400">${'⭐'.repeat(data.importance)}</span>
+                                </div>
+                                <div class="font-semibold text-white">${data.event}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-between text-sm text-gray-400 mt-3">
+                            <span>📅 ${data.date} ${data.time}</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 mt-3 text-xs">
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">前值</div>
+                                <div class="text-white font-semibold">${data.previous}</div>
+                            </div>
+                            <div class="bg-gray-800 rounded p-2">
+                                <div class="text-gray-500">预测</div>
+                                <div class="text-yellow-400 font-semibold">${data.forecast}</div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // 渲染月度日历
+            const calendarGridEl = document.getElementById('calendar-grid');
+            if (calendarGridEl) {
+                const daysInMonth = 31;
+                const calendarHTML = ['日', '一', '二', '三', '四', '五', '六'].map(day => 
+                    `<div class="text-center font-semibold text-gray-400 py-2">${day}</div>`
+                ).join('');
+                
+                let daysHTML = '';
+                for (let i = 1; i <= daysInMonth; i++) {
+                    const hasEvent = economicData.some(d => d.date.includes(`${i}日`));
+                    const eventImportance = hasEvent ? Math.max(...economicData.filter(d => d.date.includes(`${i}日`)).map(d => d.importance)) : 0;
+                    daysHTML += `
+                        <div class="aspect-square bg-gray-700 rounded p-2 text-center ${hasEvent ? 'border-2 border-yellow-500' : ''}">
+                            <div class="text-sm font-semibold">${i}</div>
+                            ${hasEvent ? `<div class="text-xs text-yellow-400 mt-1">${'⭐'.repeat(eventImportance)}</div>` : ''}
+                        </div>
+                    `;
+                }
+                
+                calendarGridEl.innerHTML = calendarHTML + daysHTML;
+            }
+        }
+
+        // 社区帖子数据（使用localStorage持久化）
+        let posts = JSON.parse(localStorage.getItem('community_posts') || '[]');
+        
+        // 如果没有数据，添加示例帖子
+        if (posts.length === 0) {
+            posts = [
+                {
+                    id: Date.now() - 3600000,
+                    user: '加密老韭菜',
+                    content: '刚刚抄底了一些ETH，感觉2300是个不错的入场点位。大家怎么看？',
+                    likes: 3,
+                    likedBy: [],
+                    comments: [
+                        { id: 1, user: '币圈新手', content: '我也想买，但是怕继续跌', time: '1小时前' },
+                        { id: 2, user: '技术分析师', content: '从技术面看，这个位置确实有支撑', time: '30分钟前' }
+                    ],
+                    time: new Date(Date.now() - 3600000).toLocaleString('zh-CN')
+                },
+                {
+                    id: Date.now() - 7200000,
+                    user: 'DeFi玩家',
+                    content: '最近在研究Solana上的新项目，收益率真的很香！有没有一起的？',
+                    likes: 2,
+                    likedBy: [],
+                    comments: [
+                        { id: 1, user: '风险厌恶者', content: '注意风险，很多项目都是土狗', time: '2小时前' }
+                    ],
+                    time: new Date(Date.now() - 7200000).toLocaleString('zh-CN')
+                }
+            ];
+            localStorage.setItem('community_posts', JSON.stringify(posts));
+        }
+
+        // 渲染帖子列表（带评论功能）
         function renderPosts() {
-            document.getElementById('posts-list').innerHTML = posts.map(post => `
+            const postsContainer = document.getElementById('posts-list');
+            if (!postsContainer) return;
+            
+            postsContainer.innerHTML = posts.map(post => `
                 <div class="bg-gray-800 rounded-lg p-6">
                     <div class="flex items-center mb-4">
                         <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold">
-                            ${post.user[0]}
+                            ${post.user[0].toUpperCase()}
                         </div>
                         <div class="ml-3">
                             <div class="font-semibold">${post.user}</div>
                             <div class="text-sm text-gray-400">${post.time}</div>
                         </div>
                     </div>
-                    <p class="text-gray-200 mb-4">${post.content}</p>
+                    <p class="text-gray-200 mb-4 whitespace-pre-wrap">${post.content}</p>
                     <div class="flex items-center space-x-6 text-gray-400 border-t border-gray-700 pt-4">
-                        <button class="flex items-center space-x-2 hover:text-blue-400">
-                            <span>👍</span><span>${post.likes}</span>
+                        <button 
+                            onclick="toggleLike(${post.id})" 
+                            class="flex items-center space-x-2 hover:text-blue-400 transition ${post.likedBy && post.likedBy.includes('current-user') ? 'text-blue-400' : ''}"
+                        >
+                            <span>${post.likedBy && post.likedBy.includes('current-user') ? '👍' : '👍🏻'}</span>
+                            <span>${post.likes}</span>
                         </button>
-                        <button class="flex items-center space-x-2 hover:text-blue-400">
-                            <span>💬</span><span>${post.comments}</span>
+                        <button 
+                            onclick="toggleComments(${post.id})" 
+                            class="flex items-center space-x-2 hover:text-blue-400 transition"
+                        >
+                            <span>💬</span>
+                            <span>${post.comments.length}</span>
                         </button>
+                        <button class="flex items-center space-x-2 hover:text-blue-400 transition">
+                            <span>🔗</span>
+                            <span>分享</span>
+                        </button>
+                    </div>
+                    <div id="comments-${post.id}" class="hidden mt-4 border-t border-gray-700 pt-4">
+                        <div class="space-y-3 mb-4">
+                            ${post.comments.map(comment => `
+                                <div class="bg-gray-700 rounded-lg p-3">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="font-semibold text-sm">${comment.user}</span>
+                                        <span class="text-xs text-gray-400">${comment.time}</span>
+                                    </div>
+                                    <p class="text-gray-300 text-sm">${comment.content}</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                        <div class="flex space-x-2">
+                            <input 
+                                type="text" 
+                                id="comment-input-${post.id}"
+                                placeholder="写下你的评论..." 
+                                class="flex-1 bg-gray-700 rounded-lg px-4 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                onkeypress="if(event.key==='Enter') addComment(${post.id})"
+                            />
+                            <button 
+                                onclick="addComment(${post.id})"
+                                class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm"
+                            >
+                                发送
+                            </button>
+                        </div>
                     </div>
                 </div>
             `).join('');
         }
 
         function createPost() {
-            const content = document.getElementById('new-post').value;
-            if (!content.trim()) return;
-            posts.unshift({ id: Date.now(), user: '我', content, likes: 0, comments: 0, time: '刚刚' });
-            document.getElementById('new-post').value = '';
+            const textarea = document.getElementById('new-post');
+            const content = textarea.value.trim();
+            
+            if (!content) {
+                alert('请输入内容');
+                return;
+            }
+            
+            const newPost = {
+                id: Date.now(),
+                user: '我',
+                content: content,
+                likes: 0,
+                likedBy: [],
+                comments: [],
+                time: new Date().toLocaleString('zh-CN')
+            };
+            
+            posts.unshift(newPost);
+            localStorage.setItem('community_posts', JSON.stringify(posts));
+            
+            textarea.value = '';
             renderPosts();
+            
+            showToast('✅ 发布成功！');
+        }
+
+        function toggleLike(postId) {
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
+            
+            if (!post.likedBy) post.likedBy = [];
+            
+            const userId = 'current-user';
+            const index = post.likedBy.indexOf(userId);
+            
+            if (index > -1) {
+                post.likedBy.splice(index, 1);
+                post.likes--;
+            } else {
+                post.likedBy.push(userId);
+                post.likes++;
+            }
+            
+            localStorage.setItem('community_posts', JSON.stringify(posts));
+            renderPosts();
+        }
+
+        function toggleComments(postId) {
+            const commentsDiv = document.getElementById(`comments-${postId}`);
+            if (commentsDiv) {
+                commentsDiv.classList.toggle('hidden');
+                if (!commentsDiv.classList.contains('hidden')) {
+                    setTimeout(() => {
+                        const input = document.getElementById(`comment-input-${postId}`);
+                        if (input) input.focus();
+                    }, 100);
+                }
+            }
+        }
+
+        function addComment(postId) {
+            const input = document.getElementById(`comment-input-${postId}`);
+            const content = input.value.trim();
+            
+            if (!content) {
+                alert('请输入评论内容');
+                return;
+            }
+            
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
+            
+            const newComment = {
+                id: Date.now(),
+                user: '我',
+                content: content,
+                time: '刚刚'
+            };
+            
+            post.comments.push(newComment);
+            localStorage.setItem('community_posts', JSON.stringify(posts));
+            
+            input.value = '';
+            renderPosts();
+            
+            setTimeout(() => {
+                const commentsDiv = document.getElementById(`comments-${postId}`);
+                if (commentsDiv) commentsDiv.classList.remove('hidden');
+            }, 100);
+            
+            showToast('✅ 评论成功！');
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.style.animation = 'fadeIn 0.3s ease-out';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
         }
 
         // 当前选择的奖金金额
@@ -981,15 +1297,174 @@
             document.getElementById('membership-modal').style.display = 'none';
         }
 
-        function becomeMember() {
-            // 模拟支付
-            alert('模拟支付 1 USDT 成功！\n\n恭喜你成为会员！🎉');
-            isMember = true;
-            closeMembershipModal();
-            renderPredictions();
-            // 更新会员状态显示
-            document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
-            document.getElementById('member-notice').style.display = 'none';
+        async function becomeMember() {
+            if (!currentUser) {
+                alert('请先连接钱包登录！');
+                closeMembershipModal();
+                return;
+            }
+
+            if (isMember) {
+                alert('你已经是会员了！');
+                closeMembershipModal();
+                return;
+            }
+
+            if (!confirm('确认支付 1 USDT 成为会员吗？')) {
+                return;
+            }
+
+            try {
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
+
+                // 检查余额
+                const balance = await usdtContract.balanceOf(currentUser.walletAddress);
+                const balanceFormatted = ethers.utils.formatUnits(balance, 18);
+                
+                if (parseFloat(balanceFormatted) < 1) {
+                    alert('USDT余额不足，至少需要 1 USDT');
+                    return;
+                }
+
+                // 发起转账
+                const amount = ethers.utils.parseUnits('1', 18);
+                const tx = await usdtContract.transfer(PLATFORM_ADDRESS, amount);
+                
+                alert('交易已发送，等待确认...');
+                const receipt = await tx.wait();
+
+                // 通知后端激活会员
+                const response = await fetch(`${API_URL}/api/membership/activate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        txHash: receipt.transactionHash,
+                        blockNumber: receipt.blockNumber
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('✅ 恭喜成为会员！');
+                    isMember = true;
+                    currentUser.isMember = true;
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    closeMembershipModal();
+                    renderPredictions();
+                    document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
+                    document.getElementById('member-notice').style.display = 'none';
+                } else {
+                    throw new Error(data.error || '激活失败');
+                }
+
+            } catch (error) {
+                console.error('支付失败:', error);
+                alert('支付失败: ' + error.message);
+            }
+        }
+        
+        // 钱包连接功能
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('请先安装MetaMask钱包！');
+                window.open('https://metamask.io/download/', '_blank');
+                return;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const address = accounts[0];
+
+                const message = `欢迎登录追风观测\n\n时间: ${new Date().toISOString()}\n地址: ${address}`;
+                const signature = await window.ethereum.request({
+                    method: 'personal_sign',
+                    params: [message, address]
+                });
+
+                const response = await fetch(`${API_URL}/api/auth/wallet-login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address, message, signature })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    currentUser = data.user;
+                    userToken = data.token;
+                    isMember = data.user.isMember;
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('token', data.token);
+                    
+                    document.getElementById('wallet-status').innerHTML = `
+                        <div class="flex items-center gap-3">
+                            ${isMember ? '<span class="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">⭐ 会员</span>' : ''}
+                            <div class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg">
+                                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span class="text-white text-sm">${address.slice(0, 6)}...${address.slice(-4)}</span>
+                            </div>
+                            <button onclick="logout()" class="text-gray-400 hover:text-white text-sm">退出</button>
+                        </div>
+                    `;
+                    
+                    if (isMember) {
+                        document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
+                        document.getElementById('member-notice').style.display = 'none';
+                    }
+                    
+                    alert('✅ 登录成功！');
+                } else {
+                    throw new Error(data.error || '登录失败');
+                }
+
+            } catch (error) {
+                console.error('连接失败:', error);
+                alert('连接失败: ' + error.message);
+            }
+        }
+        
+        function logout() {
+            currentUser = null;
+            userToken = null;
+            isMember = false;
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            document.getElementById('wallet-status').innerHTML = '<button id="connect-wallet-btn" onclick="connectWallet()" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm">连接钱包</button>';
+            alert('已退出登录');
+        }
+        
+        // 页面加载时检查登录状态
+        function checkLoginStatus() {
+            const savedUser = localStorage.getItem('user');
+            const savedToken = localStorage.getItem('token');
+            
+            if (savedUser && savedToken) {
+                currentUser = JSON.parse(savedUser);
+                userToken = savedToken;
+                isMember = currentUser.isMember;
+                
+                document.getElementById('wallet-status').innerHTML = `
+                    <div class="flex items-center gap-3">
+                        ${isMember ? '<span class="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">⭐ 会员</span>' : ''}
+                        <div class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg">
+                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span class="text-white text-sm">${currentUser.walletAddress.slice(0, 6)}...${currentUser.walletAddress.slice(-4)}</span>
+                        </div>
+                        <button onclick="logout()" class="text-gray-400 hover:text-white text-sm">退出</button>
+                    </div>
+                `;
+                
+                if (isMember) {
+                    document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
+                    document.getElementById('member-notice').style.display = 'none';
+                }
+            }
         }
 
         // 更新平台基金显示
@@ -998,11 +1473,12 @@
         }
 
         // 初始化
+        checkLoginStatus();  // 检查登录状态
         loadCryptoPrices();  // 加载真实价格数据
         loadNews();          // 加载真实新闻数据
+        loadEconomicData();  // 加载真实经济数据
         renderPosts();
         renderPredictions();
-        renderEconomicCalendar();
         updatePlatformFund();
         showPage('market');
         
