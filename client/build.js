@@ -1,5 +1,5 @@
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // 创建 dist 目录
 if (!fs.existsSync('dist')) {
