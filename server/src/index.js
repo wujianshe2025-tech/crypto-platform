@@ -60,8 +60,8 @@ const connectDB = async () => {
   return cachedConnection;
 };
 
-// 仅在需要时连接数据库（认证/会员/预测/社区）
-const dbRequired = ['/api/auth', '/api/membership', '/api/predictions', '/api/community'];
+// 仅在需要时连接数据库（认证/会员/预测），社区接口内部已做兜底
+const dbRequired = ['/api/auth', '/api/membership', '/api/predictions'];
 app.use(async (req, res, next) => {
   try {
     const path = req.path || '';
@@ -71,7 +71,7 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error('数据库连接失败:', error);
-    res.status(503).json({ error: '数据库连接失败', message: error.message });
+    next();
   }
 });
 
