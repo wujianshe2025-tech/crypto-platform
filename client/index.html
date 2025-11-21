@@ -2126,9 +2126,16 @@
             }
             
             try {
+                // 使用 Base64 编码用户名，避免中文字符导致的 HTTP 头部编码问题
+                const encodedUsername = btoa(encodeURIComponent(currentUser.username));
+                
                 const res = await fetch(`${API_URL}/api/community/posts`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id, 'x-username': currentUser.username },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-user-id': currentUser.id, 
+                        'x-username': encodedUsername
+                    },
                     body: JSON.stringify({ content })
                 });
                 const json = await res.json();
@@ -2138,6 +2145,7 @@
                 renderPosts();
                 showToast('✅ 发布成功！');
             } catch (err) {
+                console.error('发布失败:', err);
                 alert('发布失败，请稍后再试');
             }
         }
@@ -2147,16 +2155,24 @@
             if (!post) return;
             if (!isLoggedIn) { showLoginModal(); return; }
             try {
+                // 使用 Base64 编码用户名
+                const encodedUsername = btoa(encodeURIComponent(currentUser.username));
+                
                 const res = await fetch(`${API_URL}/api/community/posts/${postId}/like`, {
                     method: 'POST',
-                    headers: { 'x-user-id': currentUser.id, 'x-username': currentUser.username }
+                    headers: { 
+                        'x-user-id': currentUser.id, 
+                        'x-username': encodedUsername
+                    }
                 });
                 const json = await res.json();
                 if (json && json.success) {
                     post.likes = json.data.likes;
                     renderPosts();
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.error('点赞失败:', e);
+            }
         }
 
         function toggleComments(postId) {
@@ -2185,9 +2201,16 @@
             if (!post) return;
             if (!isLoggedIn) { showLoginModal(); return; }
             try {
+                // 使用 Base64 编码用户名
+                const encodedUsername = btoa(encodeURIComponent(currentUser.username));
+                
                 const res = await fetch(`${API_URL}/api/community/posts/${postId}/comments`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id, 'x-username': currentUser.username },
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'x-user-id': currentUser.id, 
+                        'x-username': encodedUsername
+                    },
                     body: JSON.stringify({ content })
                 });
                 const json = await res.json();
@@ -2196,7 +2219,10 @@
                     input.value = '';
                     renderPosts();
                 }
-            } catch (e) { alert('评论失败'); }
+            } catch (e) { 
+                console.error('评论失败:', e);
+                alert('评论失败'); 
+            }
             
             setTimeout(() => {
                 const commentsDiv = document.getElementById(`comments-${postId}`);

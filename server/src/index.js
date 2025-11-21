@@ -650,7 +650,16 @@ const requireAuth = (req, res, next) => {
     const uid = req.headers['x-user-id'];
     const uname = req.headers['x-username'];
     if (uid && uname) {
-      req.user = { id: String(uid), username: String(uname) };
+      // 解码 Base64 编码的用户名（前端为了避免中文字符编码问题进行了编码）
+      let decodedUsername = String(uname);
+      try {
+        // 尝试 Base64 解码
+        decodedUsername = decodeURIComponent(Buffer.from(uname, 'base64').toString());
+      } catch (decodeErr) {
+        // 如果解码失败，使用原始值（兼容未编码的情况）
+        decodedUsername = String(uname);
+      }
+      req.user = { id: String(uid), username: decodedUsername };
       return next();
     }
     return res.status(401).json({ error: '请先登录' });
