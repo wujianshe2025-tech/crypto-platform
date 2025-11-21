@@ -47,7 +47,9 @@
   </div>
 
   <script>
-    const API_URL = 'http://localhost:3000';
+    const API_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+      ? 'http://localhost:3000'
+      : 'https://crypto-platform-api.vercel.app';
     const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
     const PLATFORM_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
     

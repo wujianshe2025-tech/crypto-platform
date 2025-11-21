@@ -5,11 +5,7 @@ import {
   votePrediction,
   getUser 
 } from '../utils/api';
-import { 
-  transferUSDT, 
-  PLATFORM_ADDRESS,
-  getUSDTBalance 
-} from '../utils/web3';
+ 
 
 interface Prediction {
   _id: string;
@@ -76,7 +72,7 @@ export default function Predictions() {
   // 投票处理
   const handleVote = async (predictionId: string, optionIndex: number, hasReward: boolean, rewardAmount: number) => {
     if (!user) {
-      alert('请先连接钱包登录');
+      alert('请先登录');
       return;
     }
 
@@ -84,30 +80,8 @@ export default function Predictions() {
     setError('');
 
     try {
-      let txHash = null;
-
-      // 如果是有奖预测，需要支付
-      if (hasReward && rewardAmount > 0) {
-        setPaymentStep('checking');
-        
-        // 检查余额
-        const balance = await getUSDTBalance(user.walletAddress);
-        if (parseFloat(balance) < rewardAmount) {
-          throw new Error(`USDT余额不足，需要 ${rewardAmount} USDT`);
-        }
-
-        // 发起转账
-        setPaymentStep('transferring');
-        const tx = await transferUSDT(PLATFORM_ADDRESS, rewardAmount);
-        
-        // 等待确认
-        setPaymentStep('confirming');
-        const receipt = await tx.wait();
-        txHash = receipt.transactionHash;
-      }
-
-      // 提交投票
-      await votePrediction(predictionId, optionIndex, rewardAmount, txHash);
+      const txHash = null;
+      await votePrediction(predictionId, optionIndex, 0, txHash);
       
       // 重新加载数据
       await loadPredictions();

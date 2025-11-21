@@ -3032,54 +3032,19 @@
         }
 
         async function becomeMember() {
-            if (!currentUser) {
-                alert('请先连接钱包登录！');
-                closeMembershipModal();
-                return;
-            }
-
-            if (isMember) {
-                alert('你已经是会员了！');
-                closeMembershipModal();
-                return;
-            }
-
-            if (!confirm('确认支付 1 USDT 成为会员吗？')) {
-                return;
-            }
+            if (!currentUser) { alert('请先登录'); closeMembershipModal(); return; }
+            if (isMember) { alert('你已经是会员了！'); closeMembershipModal(); return; }
 
             try {
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                const signer = provider.getSigner();
-                const usdtContract = new ethers.Contract(USDT_ADDRESS, USDT_ABI, signer);
-
-                // 检查余额
-                const balance = await usdtContract.balanceOf(currentUser.walletAddress);
-                const balanceFormatted = ethers.utils.formatUnits(balance, 18);
-                
-                if (parseFloat(balanceFormatted) < 1) {
-                    alert('USDT余额不足，至少需要 1 USDT');
-                    return;
-                }
-
-                // 发起转账
-                const amount = ethers.utils.parseUnits('1', 18);
-                const tx = await usdtContract.transfer(PLATFORM_ADDRESS, amount);
-                
-                alert('交易已发送，等待确认...');
-                const receipt = await tx.wait();
-
-                // 通知后端激活会员
+                const orderId = prompt('请输入扫码支付成功后的订单号');
+                if (!orderId) return;
                 const response = await fetch(`${API_URL}/api/membership/activate`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${userToken}`
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
                     },
-                    body: JSON.stringify({
-                        txHash: receipt.transactionHash,
-                        blockNumber: receipt.blockNumber
-                    })
+                    body: JSON.stringify({ txHash: orderId, blockNumber: null })
                 });
 
                 const data = await response.json();
@@ -3093,113 +3058,21 @@
                     renderPredictions();
                     document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
                     document.getElementById('member-notice').style.display = 'none';
-                } else {
-                    throw new Error(data.error || '激活失败');
-                }
+                } else { throw new Error(data.error || '激活失败'); }
 
             } catch (error) {
-                console.error('支付失败:', error);
-                alert('支付失败: ' + error.message);
+                console.error('激活失败:', error);
+                alert('激活失败: ' + error.message);
             }
         }
         
         // 钱包连接功能
-        async function connectWallet() {
-            if (typeof window.ethereum === 'undefined') {
-                alert('请先安装MetaMask钱包！');
-                window.open('https://metamask.io/download/', '_blank');
-                return;
-            }
-
-            try {
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const address = accounts[0];
-
-                const message = `欢迎登录追风观测\n\n时间: ${new Date().toISOString()}\n地址: ${address}`;
-                const signature = await window.ethereum.request({
-                    method: 'personal_sign',
-                    params: [message, address]
-                });
-
-                const response = await fetch(`${API_URL}/api/auth/wallet-login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ address, message, signature })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    currentUser = data.user;
-                    userToken = data.token;
-                    isMember = data.user.isMember;
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    localStorage.setItem('token', data.token);
-                    
-                    document.getElementById('wallet-status').innerHTML = `
-                        <div class="flex items-center gap-3">
-                            ${isMember ? '<span class="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">⭐ 会员</span>' : ''}
-                            <div class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg">
-                                <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span class="text-white text-sm">${address.slice(0, 6)}...${address.slice(-4)}</span>
-                            </div>
-                            <button onclick="logout()" class="text-gray-400 hover:text-white text-sm">退出</button>
-                        </div>
-                    `;
-                    
-                    if (isMember) {
-                        document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
-                        document.getElementById('member-notice').style.display = 'none';
-                    }
-                    
-                    alert('✅ 登录成功！');
-                } else {
-                    throw new Error(data.error || '登录失败');
-                }
-
-            } catch (error) {
-                console.error('连接失败:', error);
-                alert('连接失败: ' + error.message);
-            }
-        }
+        async function connectWallet() {}
         
-        function logout() {
-            currentUser = null;
-            userToken = null;
-            isMember = false;
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            document.getElementById('wallet-status').innerHTML = '<button id="connect-wallet-btn" onclick="connectWallet()" class="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition text-sm">连接钱包</button>';
-            alert('已退出登录');
-        }
+        function logout() { handleLogout(); }
         
         // 页面加载时检查登录状态
-        function checkLoginStatus() {
-            const savedUser = localStorage.getItem('user');
-            const savedToken = localStorage.getItem('token');
-            
-            if (savedUser && savedToken) {
-                currentUser = JSON.parse(savedUser);
-                userToken = savedToken;
-                isMember = currentUser.isMember;
-                
-                document.getElementById('wallet-status').innerHTML = `
-                    <div class="flex items-center gap-3">
-                        ${isMember ? '<span class="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">⭐ 会员</span>' : ''}
-                        <div class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg">
-                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span class="text-white text-sm">${currentUser.walletAddress.slice(0, 6)}...${currentUser.walletAddress.slice(-4)}</span>
-                        </div>
-                        <button onclick="logout()" class="text-gray-400 hover:text-white text-sm">退出</button>
-                    </div>
-                `;
-                
-                if (isMember) {
-                    document.getElementById('member-status').innerHTML = '<span class="px-4 py-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg font-semibold">👑 会员</span>';
-                    document.getElementById('member-notice').style.display = 'none';
-                }
-            }
-        }
+        function checkLoginStatus() { /* 已在上文实现 */ }
 
         // 更新平台基金显示
         function updatePlatformFund() {

@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>预测投票 - 追风观测</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.ethers.io/lib/ethers-5.2.umd.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white">
   <div id="app" class="container mx-auto px-4 py-8 max-w-6xl">
@@ -13,11 +12,7 @@
     <nav class="bg-gray-800 rounded-lg p-4 mb-8">
       <div class="flex items-center justify-between">
         <h1 class="text-2xl font-bold">🌪️ 追风观测</h1>
-        <div id="wallet-status" class="flex items-center gap-3">
-          <button id="connect-wallet-btn" class="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">
-            连接钱包
-          </button>
-        </div>
+        <div id="wallet-status" class="flex items-center gap-3"></div>
       </div>
     </nav>
 
@@ -109,10 +104,9 @@
   </div>
 
   <script>
-    const API_URL = 'http://localhost:3000';
-    const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955';
-    const PLATFORM_ADDRESS = '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb';
-    
+    const API_URL = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+      ? 'http://localhost:3000'
+      : 'https://crypto-platform-api.vercel.app';
     let currentUser = null;
     let predictions = [];
 
@@ -124,7 +118,6 @@
     });
 
     function setupEventListeners() {
-      document.getElementById('connect-wallet-btn').addEventListener('click', connectWallet);
       document.getElementById('create-btn').addEventListener('click', showCreateForm);
       document.getElementById('cancel-create-btn').addEventListener('click', hideCreateForm);
       document.getElementById('prediction-form').addEventListener('submit', handleCreatePrediction);
@@ -148,50 +141,18 @@
             ${currentUser.isMember ? '<span class="px-3 py-1 bg-yellow-500 text-white text-sm rounded-full">⭐ 会员</span>' : ''}
             <div class="flex items-center gap-2 px-4 py-2 bg-gray-800 rounded-lg">
               <div class="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>${currentUser.walletAddress.slice(0, 6)}...${currentUser.walletAddress.slice(-4)}</span>
+              <span>${currentUser.username || ('用户' + String(currentUser.id).slice(-4))}</span>
             </div>
           </div>
+        `;
+      } else {
+        walletStatus.innerHTML = `
+          <a href="index.html" class="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition">登录</a>
         `;
       }
     }
 
-    async function connectWallet() {
-      if (typeof window.ethereum === 'undefined') {
-        alert('请先安装MetaMask钱包');
-        window.open('https://metamask.io/download/', '_blank');
-        return;
-      }
-
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const address = accounts[0];
-        
-        const message = `欢迎登录追风观测\\n\\n时间: ${new Date().toISOString()}\\n地址: ${address}`;
-        const signature = await window.ethereum.request({
-          method: 'personal_sign',
-          params: [message, address]
-        });
-
-        const response = await fetch(`${API_URL}/api/auth/wallet-login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ address, message, signature })
-        });
-
-        const data = await response.json();
-        
-        if (data.success) {
-          localStorage.setItem('user', JSON.stringify(data.user));
-          localStorage.setItem('token', data.token);
-          currentUser = data.user;
-          updateWalletStatus();
-          alert('✅ 登录成功！');
-        }
-      } catch (error) {
-        console.error('连接失败:', error);
-        alert('连接失败: ' + error.message);
-      }
-    }
+    async function connectWallet() {}
 
     async function loadPredictions() {
       try {
@@ -314,26 +275,11 @@
 
     async function handleVote(predictionId, optionIndex, hasReward, rewardAmount) {
       if (!currentUser) {
-        alert('请先连接钱包登录');
+        alert('请先登录');
         return;
       }
 
       try {
-        let txHash = null;
-
-        if (hasReward && rewardAmount > 0) {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          const signer = provider.getSigner();
-          const contract = new ethers.Contract(USDT_ADDRESS, [
-            'function transfer(address to, uint256 amount) returns (bool)'
-          ], signer);
-
-          const amount = ethers.utils.parseUnits(rewardAmount.toString(), 18);
-          const tx = await contract.transfer(PLATFORM_ADDRESS, amount);
-          const receipt = await tx.wait();
-          txHash = receipt.transactionHash;
-        }
-
         const token = localStorage.getItem('token');
         const response = await fetch(`${API_URL}/api/predictions/vote`, {
           method: 'POST',
@@ -344,8 +290,8 @@
           body: JSON.stringify({
             predictionId,
             optionIndex,
-            amount: rewardAmount,
-            txHash
+            amount: 0,
+            txHash: null
           })
         });
 
