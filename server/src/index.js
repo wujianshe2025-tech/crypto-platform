@@ -28,17 +28,21 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/crypto
 // Serverless 环境下的连接配置
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) {
+    console.log('MongoDB 已经连接，状态:', mongoose.connection.readyState);
     return;
   }
   
   try {
+    console.log('正在连接 MongoDB...');
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 30000, // 增加到 30 秒
       socketTimeoutMS: 45000,
+      maxPoolSize: 10,
     });
     console.log('✅ MongoDB 已连接');
   } catch (err) {
-    console.error('❌ MongoDB 连接失败:', err);
+    console.error('❌ MongoDB 连接失败:', err.message);
+    console.error('连接字符串:', MONGODB_URI.replace(/:[^:@]+@/, ':****@')); // 隐藏密码
   }
 };
 
@@ -67,12 +71,25 @@ app.get('/', (req, res) => {
 
 app.get('/health', async (req, res) => {
   // 确保连接
-  await connectDB();
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error('健康检查时连接失败:', err);
+  }
+  
+  const readyStates = {
+    0: 'disconnected',
+    1: 'connected',
+    2: 'connecting',
+    3: 'disconnecting'
+  };
   
   res.json({ 
     status: 'ok',
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-    readyState: mongoose.connection.readyState
+    readyState: mongoose.connection.readyState,
+    readyStateText: readyStates[mongoose.connection.readyState],
+    host: mongoose.connection.host || 'unknown'
   });
 });
 
