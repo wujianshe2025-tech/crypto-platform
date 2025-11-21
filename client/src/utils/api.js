@@ -1,6 +1,22 @@
 // API工具函数
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// 智能判断 API 地址
+const getApiBaseUrl = () => {
+  // 如果是本地开发环境
+  if (typeof window !== 'undefined' && 
+      (window.location.hostname === 'localhost' || 
+       window.location.hostname === '127.0.0.1')) {
+    return 'http://localhost:3000';
+  }
+  
+  // 生产环境 - 使用你的后端 API 地址
+  return 'https://crypto-platform-api.vercel.app';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// 调试信息 - 可以在控制台看到实际使用的 API 地址
+console.log('🔗 API Base URL:', API_BASE_URL);
 
 // 获取token
 const getToken = () => {
