@@ -647,14 +647,13 @@ const requireAuth = (req, res, next) => {
       req.user = { id: payload.userId || payload.id, username: payload.username || `用户${(payload.address||'').slice(0,6)}` };
       return next();
     }
-    // 兼容无JWT场景（本地或前端内置用户系统），通过头信息传递用户
     const uid = req.headers['x-user-id'];
     const uname = req.headers['x-username'];
     if (uid && uname) {
       req.user = { id: String(uid), username: String(uname) };
       return next();
     }
-    next();
+    return res.status(401).json({ error: '请先登录' });
   } catch (e) {
     return res.status(401).json({ error: '登录已过期或无效' });
   }
