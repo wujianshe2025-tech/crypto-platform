@@ -22,11 +22,28 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-// 连接MongoDB
+// 连接MongoDB - Serverless 优化
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/crypto-platform';
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('✅ MongoDB 已连接'))
-  .catch(err => console.error('❌ MongoDB 连接失败:', err));
+
+// Serverless 环境下的连接配置
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+  
+  try {
+    await mongoose.connect(MONGODB_URI, {
+      serverSelectionTimeoutMS: 5000,
+      socketTimeoutMS: 45000,
+    });
+    console.log('✅ MongoDB 已连接');
+  } catch (err) {
+    console.error('❌ MongoDB 连接失败:', err);
+  }
+};
+
+// 立即连接
+connectDB();
 
 // 注册路由
 app.use('/api/auth', authRoutes);
@@ -48,10 +65,14 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/health', (req, res) => {
+app.get('/health', async (req, res) => {
+  // 确保连接
+  await connectDB();
+  
   res.json({ 
     status: 'ok',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    readyState: mongoose.connection.readyState
   });
 });
 
