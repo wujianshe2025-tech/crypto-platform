@@ -675,9 +675,15 @@ const Post = mongoose.models.Post || mongoose.model('Post', PostSchema);
 
 app.get('/api/community/posts', async (req, res) => {
   try {
-    await connectDB();
-    const list = await Post.find({ visibility: 'public' }).sort({ createdAt: -1 }).limit(200).lean();
-    res.json({ success: true, data: list });
+    try {
+      await connectDB();
+      const list = await Post.find({ visibility: 'public' }).sort({ createdAt: -1 }).limit(200).lean();
+      return res.json({ success: true, data: list });
+    } catch (dbErr) {
+      const list = Array.isArray(globalThis.communityPosts) ? globalThis.communityPosts : [];
+      const sorted = [...list].sort((a,b) => b.id - a.id);
+      return res.json({ success: true, data: sorted });
+    }
   } catch (e) {
     res.status(500).json({ success: false, error: '获取帖子失败' });
   }
@@ -685,20 +691,38 @@ app.get('/api/community/posts', async (req, res) => {
 
 app.post('/api/community/posts', requireAuth, async (req, res) => {
   try {
-    await connectDB();
     const content = (req.body?.content || '').trim();
     if (!content) return res.status(400).json({ success: false, error: '内容不能为空' });
-    const post = await Post.create({
-      userId: req.user.id,
-      user: req.user.username || '匿名',
-      avatar: null,
-      content,
-      likes: 0,
-      likedBy: [],
-      comments: [],
-      visibility: 'public'
-    });
-    res.json({ success: true, data: post });
+    try {
+      await connectDB();
+      const post = await Post.create({
+        userId: req.user.id,
+        user: req.user.username || '匿名',
+        avatar: null,
+        content,
+        likes: 0,
+        likedBy: [],
+        comments: [],
+        visibility: 'public'
+      });
+      return res.json({ success: true, data: post });
+    } catch (dbErr) {
+      const post = {
+        id: Date.now(),
+        userId: req.user.id,
+        user: req.user.username || '匿名',
+        avatar: null,
+        content,
+        likes: 0,
+        likedBy: [],
+        comments: [],
+        time: new Date().toLocaleString('zh-CN'),
+        visibility: 'public'
+      };
+      globalThis.communityPosts = Array.isArray(globalThis.communityPosts) ? globalThis.communityPosts : [];
+      globalThis.communityPosts.unshift(post);
+      return res.json({ success: true, data: post });
+    }
   } catch (e) {
     res.status(500).json({ success: false, error: '发布失败' });
   }
@@ -706,16 +730,24 @@ app.post('/api/community/posts', requireAuth, async (req, res) => {
 
 app.post('/api/community/posts/:id/comments', requireAuth, async (req, res) => {
   try {
-    await connectDB();
     const id = req.params.id;
     const content = (req.body?.content || '').trim();
     if (!content) return res.status(400).json({ success: false, error: '评论内容不能为空' });
-    const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
-    const c = { userId: req.user.id, user: req.user.username || '匿名', content, time: '刚刚', createdAt: new Date() };
-    post.comments.push(c);
-    await post.save();
-    res.json({ success: true, data: c });
+    try {
+      await connectDB();
+      const post = await Post.findById(id);
+      if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
+      const c = { userId: req.user.id, user: req.user.username || '匿名', content, time: '刚刚', createdAt: new Date() };
+      post.comments.push(c);
+      await post.save();
+      return res.json({ success: true, data: c });
+    } catch (dbErr) {
+      const post = (globalThis.communityPosts || []).find(p => String(p.id) === String(id));
+      if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
+      const c = { id: Date.now(), user: req.user.username || '匿名', content, time: '刚刚' };
+      post.comments.push(c);
+      return res.json({ success: true, data: c });
+    }
   } catch (e) {
     res.status(500).json({ success: false, error: '评论失败' });
   }
@@ -723,16 +755,26 @@ app.post('/api/community/posts/:id/comments', requireAuth, async (req, res) => {
 
 app.post('/api/community/posts/:id/like', requireAuth, async (req, res) => {
   try {
-    await connectDB();
     const id = req.params.id;
-    const post = await Post.findById(id);
-    if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
-    post.likedBy = post.likedBy || [];
-    const idx = post.likedBy.indexOf(req.user.id);
-    if (idx > -1) { post.likedBy.splice(idx,1); post.likes = Math.max(0, (post.likes||0)-1); }
-    else { post.likedBy.push(req.user.id); post.likes = (post.likes||0)+1; }
-    await post.save();
-    res.json({ success: true, data: { likes: post.likes, liked: post.likedBy.includes(req.user.id) } });
+    try {
+      await connectDB();
+      const post = await Post.findById(id);
+      if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
+      post.likedBy = post.likedBy || [];
+      const idx = post.likedBy.indexOf(req.user.id);
+      if (idx > -1) { post.likedBy.splice(idx,1); post.likes = Math.max(0, (post.likes||0)-1); }
+      else { post.likedBy.push(req.user.id); post.likes = (post.likes||0)+1; }
+      await post.save();
+      return res.json({ success: true, data: { likes: post.likes, liked: post.likedBy.includes(req.user.id) } });
+    } catch (dbErr) {
+      const post = (globalThis.communityPosts || []).find(p => String(p.id) === String(id));
+      if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
+      post.likedBy = post.likedBy || [];
+      const idx = post.likedBy.indexOf(req.user.id);
+      if (idx > -1) { post.likedBy.splice(idx,1); post.likes = Math.max(0, (post.likes||0)-1); }
+      else { post.likedBy.push(req.user.id); post.likes = (post.likes||0)+1; }
+      return res.json({ success: true, data: { likes: post.likes, liked: post.likedBy.includes(req.user.id) } });
+    }
   } catch (e) {
     res.status(500).json({ success: false, error: '点赞失败' });
   }
