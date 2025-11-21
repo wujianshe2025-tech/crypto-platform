@@ -127,12 +127,13 @@ export default function Predictions() {
     e.preventDefault();
     
     if (!user) {
-      alert('请先连接钱包登录');
+      alert('请先登录');
       return;
     }
 
-    if (!user.isMember) {
-      alert('只有会员才能创建预测，请先成为会员');
+    // 如果要创建有奖预测，必须是会员
+    if (newPrediction.hasReward && !user.isMember) {
+      alert('只有会员才能创建有奖预测，请先升级会员。\n\n普通用户可以创建无奖预测。');
       return;
     }
 
@@ -235,13 +236,17 @@ export default function Predictions() {
           
           {!user && (
             <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
-              <p className="text-yellow-300">⚠️ 请先连接钱包登录</p>
+              <p className="text-yellow-300">⚠️ 请先登录</p>
             </div>
           )}
 
           {user && !user.isMember && (
-            <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 mb-4">
-              <p className="text-red-300">❌ 只有会员才能创建预测，请先成为会员</p>
+            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4">
+              <p className="text-blue-300">
+                💡 <strong>提示：</strong>
+                <br />• 普通用户可以创建<strong>无奖预测</strong>
+                <br />• 升级会员后可以创建<strong>有奖预测</strong>
+              </p>
             </div>
           )}
 
@@ -355,7 +360,7 @@ export default function Predictions() {
 
             <button 
               type="submit"
-              disabled={loading || !user || !user.isMember}
+              disabled={loading || !user}
               className="w-full px-6 py-3 bg-blue-600 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? '创建中...' : '创建预测'}
@@ -382,13 +387,16 @@ export default function Predictions() {
           <div className="text-6xl mb-4">🎯</div>
           <h3 className="text-xl font-semibold mb-2">还没有预测</h3>
           <p className="text-gray-400 mb-6">成为第一个创建预测的人吧！</p>
-          {user && user.isMember && (
+          {user && (
             <button
               onClick={() => setShowCreate(true)}
               className="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 transition"
             >
               创建预测
             </button>
+          )}
+          {!user && (
+            <p className="text-gray-500 text-sm">请先登录</p>
           )}
         </div>
       )}
@@ -506,7 +514,7 @@ export default function Predictions() {
 
               {!user && (
                 <div className="mt-3 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg text-sm text-yellow-300">
-                  ⚠️ 请先连接钱包登录后投票
+                  ⚠️ 请先登录后投票
                 </div>
               )}
             </div>
@@ -520,9 +528,9 @@ export default function Predictions() {
             💡 <strong>提示：</strong>
             {user 
               ? user.isMember 
-                ? '你可以创建预测和投票，预测准确者将获得加密货币奖励'
-                : '成为会员后可以创建预测，现在可以参与投票'
-              : '连接钱包后可以参与投票，成为会员后可以创建预测'
+                ? '你是会员，可以创建有奖预测和投票，预测准确者将获得加密货币奖励'
+                : '你可以创建无奖预测和投票，升级会员后可以创建有奖预测'
+              : '登录后可以创建预测和投票，升级会员后可以创建有奖预测'
             }
           </p>
         </div>

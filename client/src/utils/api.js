@@ -25,6 +25,46 @@ const clearUser = () => {
   localStorage.removeItem('token');
 };
 
+// 用户名密码注册
+export const register = async (username, password, email) => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password, email })
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error || '注册失败');
+  }
+
+  saveUser(data.user, data.token);
+  return data;
+};
+
+// 用户名密码登录
+export const login = async (username, password) => {
+  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ username, password })
+  });
+
+  const data = await response.json();
+  
+  if (!response.ok) {
+    throw new Error(data.error || '登录失败');
+  }
+
+  saveUser(data.user, data.token);
+  return data;
+};
+
 // 钱包登录
 export const walletLogin = async (address, message, signature) => {
   const response = await fetch(`${API_BASE_URL}/api/auth/wallet-login`, {

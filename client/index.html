@@ -724,7 +724,7 @@
         // API配置
         const COINGECKO_API = 'https://api.coingecko.com/api/v3';
         const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data/v2';
-        const API_URL = 'https://crypto-platform-production.up.railway.app'; // 后端API地址
+        const API_URL = 'https://crypto-platform-api.vercel.app'; // 后端API地址
         const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955'; // BSC USDT
         const PLATFORM_ADDRESS = '0xAC061A7998ee4EDe184248e19F4C3Afc5Eab53B9'; // 平台地址
         
@@ -2401,35 +2401,54 @@
                 return;
             }
             
-            // 检查用户名是否已存在
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            if (users.find(u => u.username === username)) {
-                alert('用户名已存在，请换一个');
-                return;
+            try {
+                // 调用后端 API 注册
+                const response = await fetch(`${API_URL}/api/auth/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    alert(data.error || '注册失败，请重试');
+                    return;
+                }
+                
+                // 注册成功，保存用户信息和 token
+                currentUser = {
+                    id: data.user.id,
+                    username: data.user.username,
+                    email: data.user.email,
+                    userType: data.user.isMember ? 'member' : 'user',
+                    isMember: data.user.isMember,
+                    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.username)}&background=random`
+                };
+                
+                isLoggedIn = true;
+                isMember = data.user.isMember;
+                userType = data.user.isMember ? 'member' : 'user';
+                
+                // 保存到 localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                // 加载用户统计
+                loadUserStats();
+                
+                // 更新 UI
+                updateUserStatus();
+                closeAuthModal();
+                
+                alert(`✅ 注册成功！欢迎，${currentUser.username}！`);
+            } catch (error) {
+                console.error('注册失败:', error);
+                alert('注册失败，请检查网络连接');
             }
-            
-            if (users.find(u => u.email === email)) {
-                alert('邮箱已被注册');
-                return;
-            }
-            
-            // 创建新用户
-            const newUser = {
-                id: Date.now(),
-                username: username,
-                email: email,
-                password: password, // 实际项目中应该加密
-                userType: 'user', // 默认为普通用户
-                isMember: false,
-                createdAt: new Date().toISOString(),
-                avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`
-            };
-            
-            users.push(newUser);
-            localStorage.setItem('users', JSON.stringify(users));
-            
-            alert('✅ 注册成功！请登录');
-            switchToLogin();
         }
         
         // 处理登录
@@ -2442,36 +2461,57 @@
                 return;
             }
             
-            // 查找用户
-            const users = JSON.parse(localStorage.getItem('users') || '[]');
-            const user = users.find(u => 
-                (u.username === usernameOrEmail || u.email === usernameOrEmail) && 
-                u.password === password
-            );
-            
-            if (!user) {
-                alert('用户名或密码错误');
-                return;
+            try {
+                // 调用后端 API 登录
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        username: usernameOrEmail, 
+                        password 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    alert(data.error || '登录失败，请重试');
+                    return;
+                }
+                
+                // 登录成功，保存用户信息和 token
+                currentUser = {
+                    id: data.user.id,
+                    username: data.user.username,
+                    email: data.user.email,
+                    userType: data.user.isMember ? 'member' : 'user',
+                    isMember: data.user.isMember,
+                    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(data.user.username)}&background=random`
+                };
+                
+                isLoggedIn = true;
+                isMember = data.user.isMember;
+                userType = data.user.isMember ? 'member' : 'user';
+                
+                // 保存到 localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                localStorage.setItem('isLoggedIn', 'true');
+                
+                // 加载用户统计
+                loadUserStats();
+                
+                // 更新 UI
+                updateUserStatus();
+                closeAuthModal();
+                
+                alert(`✅ 欢迎回来，${currentUser.username}！`);
+            } catch (error) {
+                console.error('登录失败:', error);
+                alert('登录失败，请检查网络连接');
             }
-            
-            // 登录成功
-            currentUser = user;
-            isLoggedIn = true;
-            isMember = user.isMember;
-            userType = user.isMember ? 'member' : 'user';
-            
-            // 保存登录状态
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            localStorage.setItem('isLoggedIn', 'true');
-            
-            // 加载用户统计
-            loadUserStats();
-            
-            // 更新 UI
-            updateUserStatus();
-            closeAuthModal();
-            
-            alert(`✅ 欢迎回来，${user.username}！`);
         }
         
         // 退出登录
