@@ -210,6 +210,15 @@
 
         <!-- 新闻页面 -->
         <div id="news-page" class="page hidden">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                    <h1 class="text-2xl font-bold">新闻</h1>
+                </div>
+                <div id="news-date-time" class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-300"></span>
+                    <span class="px-3 py-1 bg-blue-900/40 text-blue-400 rounded-md text-sm font-mono tabular-nums"></span>
+                </div>
+            </div>
             <!-- 顶部标签栏 -->
             <div class="flex items-center space-x-6 mb-6 border-b border-gray-700">
                 <button onclick="filterNews('', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-500">
@@ -243,12 +252,13 @@
                 <div class="flex items-center space-x-4">
                     <h1 class="text-2xl font-bold">经济数据</h1>
                     <div class="flex space-x-2">
-                        <button onclick="filterCalendar('all')" class="calendar-filter-btn px-4 py-2 rounded bg-blue-600 text-sm">全部</button>
-                        <button onclick="filterCalendar('important')" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">重要</button>
-                        <button onclick="filterCalendar('today')" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">今天</button>
+                        <button onclick="filterCalendar('all', event)" class="calendar-filter-btn px-4 py-2 rounded bg-blue-600 text-sm">全部</button>
+                        <button onclick="filterCalendar('important', event)" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">重要</button>
+                        <button onclick="filterCalendar('today', event)" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">今天</button>
                     </div>
                 </div>
                 <div class="flex items-center space-x-3">
+                    <button onclick="changeCalendarDate(-7)" class="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm">上一周</button>
                     <button onclick="changeCalendarDate(-1)" class="p-2 bg-gray-700 rounded hover:bg-gray-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                     </button>
@@ -256,6 +266,7 @@
                     <button onclick="changeCalendarDate(1)" class="p-2 bg-gray-700 rounded hover:bg-gray-600">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                     </button>
+                    <button onclick="changeCalendarDate(7)" class="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm">下一周</button>
                     <button onclick="setCalendarToday()" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm font-semibold">今天</button>
                 </div>
             </div>
@@ -264,6 +275,41 @@
             <div class="mb-6 bg-gray-800 rounded-lg p-4">
                 <div id="calendar-week-tabs" class="flex space-x-2 overflow-x-auto"></div>
             </div>
+
+            <!-- 高级筛选 -->
+            <div class="mb-4 flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-400">重要性</span>
+                    <select id="calendar-importance-select" class="bg-gray-700 rounded px-2 py-1 text-sm" onchange="onCalendarImportanceChange(event)">
+                        <option value="1">全部</option>
+                        <option value="3">中度及以上</option>
+                        <option value="4">重要及以上</option>
+                        <option value="5">非常重要</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-400">国家</span>
+                    <select id="calendar-country-select" class="bg-gray-700 rounded px-2 py-1 text-sm" onchange="onCalendarCountryChange(event)">
+                        <option value="全部">全部</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm text-gray-400">类型</span>
+                    <select id="calendar-type-select" class="bg-gray-700 rounded px-2 py-1 text-sm" onchange="onCalendarTypeChange(event)">
+                        <option value="全部">全部</option>
+                        <option value="CPI">CPI</option>
+                        <option value="PPI">PPI</option>
+                        <option value="GDP">GDP</option>
+                        <option value="PMI">PMI</option>
+                        <option value="就业">就业</option>
+                        <option value="利率">利率</option>
+                        <option value="零售">零售</option>
+                        <option value="贸易">贸易</option>
+                    </select>
+                </div>
+            </div>
+
+            <div id="calendar-day-summary" class="mb-4 bg-gray-800 rounded-lg p-4 text-sm text-gray-300"></div>
 
             <!-- 数据列表 -->
             <div class="bg-gray-800 rounded-lg overflow-hidden">
@@ -724,7 +770,12 @@
         // API配置
         const COINGECKO_API = 'https://api.coingecko.com/api/v3';
         const CRYPTOCOMPARE_API = 'https://min-api.cryptocompare.com/data/v2';
-        const API_URL = 'https://crypto-platform-api.vercel.app'; // 后端API地址
+        const queryApiBase = new URLSearchParams(location.search).get('api_base');
+        const storedApiBase = localStorage.getItem('api_base');
+        const defaultApiBase = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+            ? 'http://localhost:3000'
+            : 'https://crypto-platform-api.vercel.app';
+        const API_URL = queryApiBase || storedApiBase || defaultApiBase;
         const USDT_ADDRESS = '0x55d398326f99059fF775485246999027B3197955'; // BSC USDT
         const PLATFORM_ADDRESS = '0xAC061A7998ee4EDe184248e19F4C3Afc5Eab53B9'; // 平台地址
         
@@ -743,6 +794,7 @@
         let economicData = [];
         let currentCalendarDate = new Date();
         let calendarFilter = 'all';
+        let calendarAdvancedFilters = { importanceMin: 1, country: '全部', type: '全部' };
         
         // 国家代码映射
         const countryFlags = {
@@ -929,8 +981,37 @@
         // 加载真实经济数据
         async function loadEconomicData() {
             try {
-                // 尝试从多个 API 源获取数据
-                await loadFromTradingEconomics();
+                const base = new Date(currentCalendarDate || new Date());
+                const day = base.getDay();
+                const mondayOffset = (day + 6) % 7;
+                const monday = new Date(base);
+                monday.setDate(base.getDate() - mondayOffset);
+                const sunday = new Date(monday);
+                sunday.setDate(monday.getDate() + 6);
+                const startStr = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+                const endStr = `${sunday.getFullYear()}-${String(sunday.getMonth()+1).padStart(2,'0')}-${String(sunday.getDate()).padStart(2,'0')}`;
+                const res = await fetch(`${API_URL}/api/calendar?start=${startStr}&end=${endStr}`);
+                if (!res.ok) throw new Error('calendar api failed');
+                const json = await res.json();
+                const list = Array.isArray(json.data) ? json.data : [];
+                economicData = list.map((item, index) => {
+                    const dt = new Date(`${item.date}T${(item.time || '00:00')}:00`);
+                    return {
+                        id: item.id || index + 1,
+                        country: item.country || '🌐',
+                        countryName: item.countryName || '未知',
+                        event: translateEconomicEvent(item.event || '未知事件'),
+                        dateObj: dt,
+                        time: item.time || dt.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }),
+                        importance: item.importance || 1,
+                        status: item.status === 'published' ? 'published' : 'upcoming',
+                        previous: item.previous || '--',
+                        forecast: item.forecast || '--',
+                        actual: item.actual || '',
+                        impact: item.impact || determineImpact(item.actual, item.forecast, item.previous)
+                    };
+                });
+                renderEconomicCalendar();
             } catch (error) {
                 console.error('Failed to load from Trading Economics:', error);
                 try {
@@ -1091,20 +1172,32 @@
             // 更新日期显示
             const dateDisplay = document.getElementById('calendar-date-display');
             if (dateDisplay) {
-                dateDisplay.textContent = currentCalendarDate.toISOString().split('T')[0];
+                const d = currentCalendarDate;
+                const pad = (n) => String(n).padStart(2, '0');
+                dateDisplay.textContent = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
             }
             
             // 渲染周标签
             renderWeekTabs();
+            updateCalendarFilterOptions();
             
-            // 筛选数据
-            let filteredData = economicData;
-            const currentDateStr = currentCalendarDate.toISOString().split('T')[0];
-            
-            if (calendarFilter === 'today') {
-                filteredData = economicData.filter(d => d.dateObj.toISOString().split('T')[0] === currentDateStr);
-            } else if (calendarFilter === 'important') {
-                filteredData = economicData.filter(d => d.importance >= 3);
+            // 筛选数据：默认显示当前选中日期的数据；“重要”在此基础上筛选重要级别
+            const d = currentCalendarDate;
+            const currentDateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            let filteredData = economicData.filter(ev => {
+                const dd = ev.dateObj;
+                const ds = `${dd.getFullYear()}-${String(dd.getMonth()+1).padStart(2,'0')}-${String(dd.getDate()).padStart(2,'0')}`;
+                return ds === currentDateStr;
+            });
+            if (calendarFilter === 'important') {
+                filteredData = filteredData.filter(d => d.importance >= 3);
+            }
+            filteredData = filteredData.filter(d => d.importance >= calendarAdvancedFilters.importanceMin);
+            if (calendarAdvancedFilters.country && calendarAdvancedFilters.country !== '全部') {
+                filteredData = filteredData.filter(d => d.countryName === calendarAdvancedFilters.country);
+            }
+            if (calendarAdvancedFilters.type && calendarAdvancedFilters.type !== '全部') {
+                filteredData = filteredData.filter(d => classifyEventType(d.event) === calendarAdvancedFilters.type);
             }
             
             // 按日期分组
@@ -1129,13 +1222,14 @@
                         const impactText = event.impact === 'bullish' ? '利空 金银' : 
                                          event.impact === 'bearish' ? '利多 金银' : '影响较小';
                         const statusBadge = event.status === 'published' ? 
-                            '<span class="text-xs px-2 py-1 bg-green-900/50 text-green-400 rounded">已公布</span>' : '';
+                            '<span class="text-xs px-2 py-1 bg-green-900/50 text-green-400 rounded">已公布</span>' : 
+                            '<span class="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">待公布</span>';
                         
                         html += `
                             <div class="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition cursor-pointer border-l-4 ${event.importance >= 3 ? 'border-yellow-500' : 'border-transparent'}">
                                 <div class="col-span-1 text-sm text-gray-400">${event.time}</div>
                                 <div class="col-span-1 text-sm">${event.country}</div>
-                                <div class="col-span-3 text-sm">
+                                <div class="col-span-3 text-sm" onclick="openCalendarDetail(${event.id})">
                                     <div class="font-semibold text-white">${event.event}</div>
                                     ${statusBadge}
                                 </div>
@@ -1153,7 +1247,7 @@
                                     </span>
                                 </div>
                                 <div class="col-span-1 text-center">
-                                    <button class="text-gray-400 hover:text-yellow-400 transition">
+                                    <button class="text-gray-400 hover:text-yellow-400 transition" onclick="toggleReminder('${currentDateStr}_${event.id}')">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                                     </button>
                                 </div>
@@ -1163,28 +1257,115 @@
                 });
                 eventsList.innerHTML = html || '<div class="px-6 py-8 text-center text-gray-400">暂无数据</div>';
             }
+
+            const summary = document.getElementById('calendar-day-summary');
+            if (summary) {
+                const total = filteredData.length;
+                const published = filteredData.filter(e => e.status === 'published').length;
+                const upcoming = total - published;
+                const bull = filteredData.filter(e => e.impact === 'bullish').length;
+                const bear = filteredData.filter(e => e.impact === 'bearish').length;
+                const avgImp = total ? Math.round(filteredData.reduce((s,e)=>s+e.importance,0)/total) : 0;
+                summary.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <span>事件数：<span class="text-white font-semibold">${total}</span></span>
+                            <span>已公布：<span class="text-green-400 font-semibold">${published}</span></span>
+                            <span>待公布：<span class="text-blue-400 font-semibold">${upcoming}</span></span>
+                        </div>
+                        <div class="flex items-center space-x-4">
+                            <span>影响：<span class="text-red-400">利多 ${bear}</span> / <span class="text-green-400">利空 ${bull}</span> / <span class="text-gray-400">小 ${total - bull - bear}</span></span>
+                            <span>平均重要性：<span class="text-yellow-400 font-semibold">${'⭐'.repeat(Math.max(1, avgImp))}</span></span>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        function onCalendarImportanceChange(e) {
+            const v = parseInt(e.target.value, 10);
+            calendarAdvancedFilters.importanceMin = isNaN(v) ? 1 : v;
+            renderEconomicCalendar();
+        }
+        function onCalendarCountryChange(e) {
+            calendarAdvancedFilters.country = e.target.value || '全部';
+            renderEconomicCalendar();
+        }
+        function onCalendarTypeChange(e) {
+            calendarAdvancedFilters.type = e.target.value || '全部';
+            renderEconomicCalendar();
+        }
+        function classifyEventType(name) {
+            const n = String(name || '').toUpperCase();
+            if (n.includes('CPI') || n.includes('CONSUMER PRICE')) return 'CPI';
+            if (n.includes('PPI') || n.includes('PRODUCER PRICE')) return 'PPI';
+            if (n.includes('GDP') || n.includes('GROSS DOMESTIC')) return 'GDP';
+            if (n.includes('PMI')) return 'PMI';
+            if (n.includes('UNEMP') || n.includes('JOB') || n.includes('EMPLOY') || n.includes('LABOR')) return '就业';
+            if (n.includes('RATE') || n.includes('INTEREST') || n.includes('FED') || n.includes('ECB') || n.includes('BOJ') || n.includes('BOE')) return '利率';
+            if (n.includes('RETAIL') || n.includes('SALES')) return '零售';
+            if (n.includes('TRADE') || n.includes('BALANCE') || n.includes('EXPORT') || n.includes('IMPORT')) return '贸易';
+            return '其他';
+        }
+        function updateCalendarFilterOptions() {
+            const countrySel = document.getElementById('calendar-country-select');
+            if (!countrySel) return;
+            const set = new Set(['全部']);
+            economicData.forEach(d => { if (d.countryName) set.add(d.countryName); });
+            countrySel.innerHTML = Array.from(set).map(c => `<option value="${c}">${c}</option>`).join('');
+            countrySel.value = calendarAdvancedFilters.country;
+        }
+
+        let calendarReminders = JSON.parse(localStorage.getItem('calendarReminders') || '{}');
+        function toggleReminder(key) {
+            const v = !!calendarReminders[key];
+            calendarReminders[key] = !v;
+            localStorage.setItem('calendarReminders', JSON.stringify(calendarReminders));
+        }
+        function openCalendarDetail(id) {
+            const ev = economicData.find(e => String(e.id) === String(id));
+            if (!ev) return;
+            const modal = document.getElementById('calendar-detail-modal');
+            const box = document.getElementById('calendar-detail-box');
+            const impactColor = ev.impact === 'bullish' ? 'text-green-400' : ev.impact === 'bearish' ? 'text-red-400' : 'text-yellow-400';
+            const impactText = ev.impact === 'bullish' ? '利空 金银' : ev.impact === 'bearish' ? '利多 金银' : '影响较小';
+            box.innerHTML = `
+                <div class="text-lg font-semibold mb-2">${ev.event}</div>
+                <div class="text-sm mb-4">${ev.country} · ${ev.time}</div>
+                <div class="grid grid-cols-3 gap-2 mb-4 text-sm">
+                    <div class="bg-gray-800 rounded p-3"><div class="text-gray-400">前值</div><div class="text-white font-semibold">${ev.previous}</div></div>
+                    <div class="bg-gray-800 rounded p-3"><div class="text-gray-400">预测</div><div class="text-yellow-400 font-semibold">${ev.forecast}</div></div>
+                    <div class="bg-gray-800 rounded p-3"><div class="text-gray-400">公布</div><div class="font-semibold ${ev.actual ? impactColor : 'text-gray-600'}">${ev.actual || '--'}</div></div>
+                </div>
+                <div class="text-sm ${impactColor}">${impactText}</div>`;
+            modal.style.display = 'flex';
+        }
+        function closeCalendarDetail() {
+            const modal = document.getElementById('calendar-detail-modal');
+            modal.style.display = 'none';
         }
         
         // 渲染周标签
         function renderWeekTabs() {
             const weekTabs = document.getElementById('calendar-week-tabs');
             if (!weekTabs) return;
-            
-            const today = new Date();
+            const base = new Date(currentCalendarDate || new Date());
+            const day = base.getDay();
+            const mondayOffset = (day + 6) % 7;
+            const monday = new Date(base);
+            monday.setDate(base.getDate() - mondayOffset);
+            const pad = (n) => String(n).padStart(2,'0');
+            const baseStr = `${base.getFullYear()}-${pad(base.getMonth()+1)}-${pad(base.getDate())}`;
             let html = '';
-            for (let i = -3; i <= 3; i++) {
-                const date = new Date(today);
-                date.setDate(date.getDate() + i);
-                const dateStr = date.toISOString().split('T')[0];
-                const isSelected = dateStr === currentCalendarDate.toISOString().split('T')[0];
-                const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
-                const dayName = dayNames[date.getDay()];
-                const dateNum = date.getDate();
-                
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(monday);
+                d.setDate(monday.getDate() + i);
+                const ds = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+                const isSelected = ds === baseStr;
+                const dayLabels = ['一','二','三','四','五','六','日'];
                 html += `
-                    <button onclick="setCalendarDate('${dateStr}')" class="flex-shrink-0 px-4 py-2 rounded ${isSelected ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'} transition">
-                        <div class="text-xs text-gray-400">${i === 0 ? '今天' : dayName}</div>
-                        <div class="text-sm font-semibold">${dateNum}</div>
+                    <button onclick="setCalendarDate('${ds}')" class="flex-shrink-0 px-4 py-2 rounded ${isSelected ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'} transition">
+                        <div class="text-xs ${isSelected ? 'text-white' : 'text-gray-400'}">${i === mondayOffset ? '今天' : '周' + dayLabels[i]}</div>
+                        <div class="text-sm font-semibold">${pad(d.getDate())}</div>
                     </button>
                 `;
             }
@@ -1206,19 +1387,19 @@
         // 改变日期
         function changeCalendarDate(days) {
             currentCalendarDate.setDate(currentCalendarDate.getDate() + days);
-            renderEconomicCalendar();
+            loadEconomicData();
         }
         
         // 设置为今天
         function setCalendarToday() {
             currentCalendarDate = new Date();
-            renderEconomicCalendar();
+            loadEconomicData();
         }
         
         // 设置特定日期
         function setCalendarDate(dateStr) {
             currentCalendarDate = new Date(dateStr);
-            renderEconomicCalendar();
+            loadEconomicData();
         }
 
         // 用户系统状态
@@ -1334,6 +1515,9 @@
 
         let newsData = [];
         let currentNewsFilter = '';
+        let currentNewsPage = 1;
+        let newsHasMore = true;
+        let isLoadingNews = false;
         
         // 中文关键词映射 - 扩展版
         const translateKeywords = {
@@ -1451,6 +1635,22 @@
             'community': '社区', 'user': '用户',
             'global': '全球', 'worldwide': '全球',
             'industry': '行业', 'sector': '领域'
+            , 'Revolutionary': '革命性'
+            , 'Virtual Asset': '虚拟资产'
+            , 'Reforms': '改革'
+            , 'University': '大学'
+            , 'Endowments': '捐赠基金'
+            , 'Valuation': '估值'
+            , 'Arbitrage Strategy': '套利策略'
+            , 'Arbitrage': '套利'
+            , 'Annual Returns': '年度回报'
+            , 'Raises': '融资'
+            , 'Series C': 'C轮'
+            , 'Series B': 'B轮'
+            , 'Series A': 'A轮'
+            , 'South Korean': '韩国'
+            , 'Climbs': '上涨'
+            , 'Trade': '交易'
         };
         
         // 增强的翻译函数
@@ -1485,35 +1685,51 @@
             return bullCount > bearCount ? 'bullish' : bearCount > bullCount ? 'bearish' : 'neutral';
         }
         
-        // 加载真实新闻
-        async function loadNews() {
+        // 加载真实新闻（分页 + 可选分类）
+        async function loadNews(page = 1, category = '') {
             try {
-                const response = await fetch(`${CRYPTOCOMPARE_API}/news/?lang=EN`);
+                isLoadingNews = true;
+                const params = new URLSearchParams();
+                params.set('limit', '20');
+                params.set('page', String(page));
+                if (category) params.set('category', category);
+                const response = await fetch(`${API_URL}/api/news?${params.toString()}`);
                 if (!response.ok) throw new Error('Failed to fetch');
                 
                 const data = await response.json();
-                newsData = data.Data.slice(0, 20).map((news, i) => ({
+                const list = (data.data || []);
+                const mapped = list.map((news) => ({
                     id: news.id,
                     title: translateText(news.title),
                     content: translateText(news.body).substring(0, 150),
-                    category: i < 3 ? 'breaking' : i < 8 ? 'important' : 'realtime',
-                    sentiment: analyzeSentiment(news.title + ' ' + news.body),
+                    category: news.category || 'realtime',
+                    sentiment: news.sentiment || analyzeSentiment((news.title || '') + ' ' + (news.body || '')),
                     source: news.source,
-                    time: getTimeAgo(news.published_on),
+                    time: formatNewsTime(news.published_on),
                     views: Math.floor(Math.random() * 3000) + 500
                 }));
-                renderNews(currentNewsFilter);
+                if (page === 1) {
+                    newsData = mapped;
+                } else {
+                    newsData = newsData.concat(mapped);
+                }
+                currentNewsPage = page;
+                newsHasMore = data.hasMore !== undefined ? !!data.hasMore : (mapped.length >= 20);
+                renderNews(category);
             } catch (error) {
                 console.error('Error loading news:', error);
+            } finally {
+                isLoadingNews = false;
             }
         }
         
-        function getTimeAgo(timestamp) {
-            const diff = Date.now() - timestamp * 1000;
-            const hours = Math.floor(diff / 3600000);
-            if (hours < 1) return '刚刚';
-            if (hours < 24) return `${hours}小时前`;
-            return `${Math.floor(hours / 24)}天前`;
+        function formatNewsTime(timestamp) {
+            const d = new Date(timestamp * 1000);
+            const now = new Date();
+            const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+            const pad = (n) => String(n).padStart(2, '0');
+            if (sameDay) return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+            return `${d.getMonth() + 1}月${d.getDate()}日 ${pad(d.getHours())}:${pad(d.getMinutes())}`;
         }
 
         // posts 变量已在后面的社区功能中定义
@@ -1562,7 +1778,7 @@
             
             // 切换到新闻页面时加载数据
             if (page === 'news' && newsData.length === 0) {
-                loadNews();
+                loadNews(1, currentNewsFilter);
             }
             if (page === 'predictions') {
                 loadPredictionsFromApi();
@@ -1697,12 +1913,15 @@
             
             const newsList = document.getElementById('news-list');
             if (!newsList) return;
+            if (!filtered.length) {
+                newsList.innerHTML = `<div class="p-8 text-center text-gray-400">暂无新闻数据，请点击上方“刷新”或稍后重试</div>`;
+                return;
+            }
             
             newsList.innerHTML = filtered.map((news, index) => `
                 <div class="flex hover:bg-gray-750 transition cursor-pointer group">
-                    <!-- 时间列 -->
-                    <div class="w-20 flex-shrink-0 px-4 py-4 text-right">
-                        <div class="text-sm text-gray-400">${news.time}</div>
+                    <div class="w-24 flex-shrink-0 px-4 py-4 text-right">
+                        <div class="text-sm text-gray-300 font-mono tabular-nums">${news.time}</div>
                     </div>
                     
                     <!-- 内容列 -->
@@ -1748,12 +1967,19 @@
                 event.target.classList.remove('border-transparent', 'text-gray-400');
                 event.target.classList.add('border-blue-500', 'text-blue-500');
             }
-            renderNews(category);
+            currentNewsFilter = category;
+            currentNewsPage = 1;
+            newsHasMore = true;
+            loadNews(1, category);
         }
         
         function loadMoreNews() {
-            // 加载更多新闻的功能（可以后续实现）
-            alert('加载更多功能开发中...');
+            if (isLoadingNews) return;
+            if (!newsHasMore) {
+                alert('已到底');
+                return;
+            }
+            loadNews(currentNewsPage + 1, currentNewsFilter);
         }
 
 
@@ -3062,6 +3288,17 @@
                 closePredictionTypeModal();
             }
         });
+
+        const detailModalHtml = `
+            <div id="calendar-detail-modal" class="fixed inset-0 bg-black/60 hidden items-center justify-center z-50">
+                <div class="bg-gray-900 rounded-lg p-6 w-full max-w-lg border border-gray-700">
+                    <div id="calendar-detail-box"></div>
+                    <div class="mt-6 text-right">
+                        <button class="px-4 py-2 bg-gray-700 rounded hover:bg-gray-600" onclick="closeCalendarDetail()">关闭</button>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', detailModalHtml);
         
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -3077,7 +3314,8 @@
             setInterval(loadCryptoPrices, 30000);
             
             // 加载新闻数据
-            loadNews();
+            loadNews(1, currentNewsFilter);
+            initNewsClock();
             
             // 加载经济数据
             loadEconomicData();
@@ -3089,6 +3327,23 @@
             
             loadPredictionsFromApi();
         });
+
+        function initNewsClock() {
+            const el = document.getElementById('news-date-time');
+            if (!el) return;
+            const dateSpan = el.children[0];
+            const timeSpan = el.children[1];
+            const update = () => {
+                const now = new Date();
+                const month = now.getMonth() + 1;
+                const day = now.getDate();
+                const pad = (n) => String(n).padStart(2, '0');
+                dateSpan.textContent = `${month}月${day}日 · 今天`;
+                timeSpan.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            };
+            update();
+            setInterval(update, 1000);
+        }
     </script>
 </body>
 </html>

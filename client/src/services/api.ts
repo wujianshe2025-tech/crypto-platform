@@ -48,19 +48,18 @@ export async function fetchCoinDetails(coinId: string) {
   }
 }
 
-// 获取加密货币新闻（使用CryptoCompare API）
+// 获取加密货币新闻（优先后端聚合）
 export async function fetchCryptoNews() {
   try {
-    const response = await fetch(
-      'https://min-api.cryptocompare.com/data/v2/news/?lang=EN'
-    );
-    
+    const apiBase = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+      ? 'http://localhost:3000'
+      : 'https://crypto-platform-api.vercel.app';
+    const response = await fetch(`${apiBase}/api/news`);
     if (!response.ok) {
       throw new Error('Failed to fetch news');
     }
-    
     const data = await response.json();
-    return data.Data || [];
+    return data.data || [];
   } catch (error) {
     console.error('Error fetching news:', error);
     throw error;
