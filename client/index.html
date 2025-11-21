@@ -1518,49 +1518,38 @@
 
         // posts 变量已在后面的社区功能中定义
 
-        let predictions = [
-            { 
-                id: 1, 
-                creator: '预测大师', 
-                title: 'BTC在2024年1月底能否突破50000美元？', 
-                desc: '根据当前市场走势预测', 
-                options: [{text: '能突破', votes: 5}, {text: '不能突破', votes: 2}], 
-                hasReward: true,
-                rewardPerPerson: 2,  // 每人2 USDT
-                totalPool: 14,  // 7人参与 * 2 USDT
-                creatorReward: 0.14,  // 1%
-                platformFee: 0.56,  // 4%
-                winnerPool: 12.6,  // 90%
-                deadline: '30天',
-                status: 'active'
-            },
-            { 
-                id: 2, 
-                creator: '市场观察者', 
-                title: '美联储下次会议会降息吗？', 
-                desc: '预测货币政策影响', 
-                options: [{text: '会降息', votes: 6}, {text: '维持不变', votes: 3}, {text: '会加息', votes: 1}], 
-                hasReward: true,
-                rewardPerPerson: 3,  // 每人3 USDT
-                totalPool: 30,  // 10人参与 * 3 USDT
-                creatorReward: 0.3,  // 1%
-                platformFee: 1.2,  // 4%
-                winnerPool: 27,  // 90%
-                deadline: '15天',
-                status: 'active'
-            },
-            { 
-                id: 3, 
-                creator: '币圈分析师', 
-                title: 'ETH本周能否突破2500美元？', 
-                desc: '以太坊技术面分析', 
-                options: [{text: '能突破', votes: 8}, {text: '不能突破', votes: 4}], 
-                hasReward: false,  // 无奖预测
-                totalPool: 0,
-                deadline: '7天',
-                status: 'active'
-            },
-        ];
+        let predictions = [];
+
+        async function loadPredictionsFromApi() {
+            try {
+                const res = await fetch(`${API_URL}/api/predictions`);
+                const json = await res.json();
+                const list = (json.data || []);
+                predictions = list.map(pred => ({
+                    id: pred._id,
+                    creator: pred.creatorId?.username || '匿名',
+                    title: pred.title,
+                    desc: pred.description || '无描述',
+                    options: pred.options.map(opt => ({
+                        text: opt.text,
+                        votes: opt.votes.length,
+                        voted: (typeof currentUser !== 'undefined' && currentUser) ? opt.votes.includes(currentUser.id) : false,
+                        userVoted: (typeof currentUser !== 'undefined' && currentUser) ? opt.votes.includes(currentUser.id) : false
+                    })),
+                    hasReward: !!pred.hasReward,
+                    rewardPerPerson: pred.rewardPerPerson || 0,
+                    totalPool: pred.totalPool || 0,
+                    creatorReward: pred.creatorReward || 0,
+                    platformFee: pred.platformFee || 0,
+                    winnerPool: pred.winnerPool || 0,
+                    deadline: '进行中',
+                    status: pred.status || 'active'
+                }));
+                renderPredictions();
+            } catch (e) {
+                console.error('加载预测失败:', e);
+            }
+        }
 
         // 页面切换
         function showPage(page, event) {
@@ -1574,6 +1563,9 @@
             // 切换到新闻页面时加载数据
             if (page === 'news' && newsData.length === 0) {
                 loadNews();
+            }
+            if (page === 'predictions') {
+                loadPredictionsFromApi();
             }
         }
 
@@ -2117,7 +2109,7 @@
                                 return `
                                     <div class="relative">
                                         <button 
-                                            onclick="votePrediction(${pred.id}, ${i})" 
+                                            onclick="votePrediction('${pred.id}', ${i})" 
                                             class="w-full bg-gray-700 hover:bg-gray-600 rounded-lg p-4 transition ${opt.voted ? 'ring-2 ring-blue-500' : ''}"
                                         >
                                             <div class="flex items-center justify-between mb-2">
@@ -2164,57 +2156,25 @@
             }).join('');
         }
 
-        function votePrediction(predId, optionIndex) {
-            const pred = predictions.find(p => p.id === predId);
-            if (!pred) return;
-            
-            // 检查是否已投票
-            const alreadyVoted = pred.options.some(opt => opt.voted);
-            
-            // 有奖预测需要会员权限
-            if (pred.hasReward) {
-                if (!isMember) {
-                    alert('💰 有奖预测投票需要会员权限\n\n升级会员后可参与有奖预测投票！');
-                    showMembershipModal();
-                    return;
-                }
-                
-                // 确认支付
-                if (!alreadyVoted) {
-                    const confirm = window.confirm(`💰 投票需要支付 ${pred.rewardPerPerson} USDT\n\n预测准确将获得奖金分成！\n确认投票吗？`);
-                    if (!confirm) return;
-                }
-            }
-            
-            predictions = predictions.map(p => {
-                if (p.id === predId) {
-                    p.options.forEach((opt, i) => {
-                        opt.voted = false;
-                        if (opt.votes > 0 && opt.userVoted) opt.votes--;
-                    });
-                    p.options[optionIndex].votes++;
-                    p.options[optionIndex].voted = true;
-                    p.options[optionIndex].userVoted = true;
-                    
-                    // 更新奖金池
-                    if (p.hasReward) {
-                        const total = p.options.reduce((sum, opt) => sum + opt.votes, 0);
-                        const poolInfo = calculateRewardPool(total, p.rewardPerPerson);
-                        p.totalPool = poolInfo.totalPool;
-                        p.creatorReward = poolInfo.creatorReward;
-                        p.platformFee = poolInfo.platformFee;
-                        p.winnerPool = poolInfo.winnerPool;
-                        
-                        // 累计平台激励基金
-                        userStats.platformFund += poolInfo.platformFee;
-                    }
-                }
-                return p;
-            });
-            renderPredictions();
-            
-            if (pred.hasReward) {
-                alert(`✅ 投票成功！\n\n已支付：${pred.rewardPerPerson} USDT\n预测准确将获得奖金！`);
+        async function votePrediction(predId, optionIndex) {
+            if (!isLoggedIn || !currentUser) { alert('请先登录'); showLoginModal(); return; }
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`${API_URL}/api/predictions/vote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ predictionId: predId, optionIndex, amount: 0, txHash: null })
+                });
+                const data = await res.json();
+                if (!res.ok) { throw new Error(data.error || '投票失败'); }
+                await loadPredictionsFromApi();
+                alert('✅ 投票成功！');
+            } catch (e) {
+                console.error('投票失败:', e);
+                alert('投票失败: ' + e.message);
             }
         }
 
@@ -2234,7 +2194,7 @@
             }
         }
 
-        function createPrediction() {
+        async function createPrediction() {
             // 1. 获取基本信息
             const title = document.getElementById('pred-title').value.trim();
             const desc = document.getElementById('pred-desc').value.trim();
@@ -2290,27 +2250,30 @@
                 }
             }
             
-            // 5. 创建预测对象
-            const newPrediction = {
-                id: Date.now(),
-                creator: currentUser ? currentUser.username : '我',
-                title: title,
-                desc: desc || '无描述',
-                options: options,
-                hasReward: isRewardPrediction,
-                rewardPerPerson: isRewardPrediction ? selectedRewardAmount : 0,
-                totalPool: 0,
-                creatorReward: 0,
-                platformFee: 0,
-                winnerPool: 0,
-                deadline: '7天',
-                status: 'active',
-                createdAt: new Date().toISOString()
-            };
-            
-            // 6. 保存预测
-            predictions.unshift(newPrediction);
-            localStorage.setItem('predictions', JSON.stringify(predictions));
+            // 5. 提交到后端
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/api/predictions`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        title,
+                        description: desc || '无描述',
+                        options: options.map(o => o.text),
+                        hasReward: isRewardPrediction,
+                        rewardPerPerson: isRewardPrediction ? selectedRewardAmount : 0,
+                        deadline: new Date(Date.now() + 7*24*60*60*1000).toISOString()
+                    })
+                });
+                const data = await response.json();
+                if (!response.ok) { throw new Error(data.error || '创建失败'); }
+            } catch (e) {
+                alert('创建失败: ' + e.message);
+                return;
+            }
             
             // 7. 更新统计
             if (isRewardPrediction) {
@@ -2330,7 +2293,7 @@
             
             // 9. 刷新显示
             toggleCreatePrediction();
-            renderPredictions();
+            await loadPredictionsFromApi();
             updatePredictionStats();
             
             // 10. 显示成功消息
@@ -2673,7 +2636,7 @@
         }
         
         // 确认支付完成
-        function confirmPayment() {
+        async function confirmPayment() {
             if (!isLoggedIn || !currentUser) {
                 alert('请先登录');
                 closePaymentQRModal();
@@ -2681,50 +2644,36 @@
                 return;
             }
             
-            // 显示确认对话框
             const confirmed = confirm(
-                '请确认您已完成支付：\n\n' +
-                '• 支付金额：1 USDT\n' +
-                '• 网络：BSC (BEP20)\n' +
-                '• 收款地址：' + PLATFORM_PAYMENT_ADDRESS.slice(0, 10) + '...' + PLATFORM_PAYMENT_ADDRESS.slice(-8) + '\n\n' +
-                '支付通常需要几分钟确认，我们会在确认后为您开通会员权限。\n\n' +
-                '如有问题，请联系客服。'
+                '请确认您已完成扫码支付（1 USDT，BSC链）。\n\n' +
+                '支付通常需要几分钟确认。确认后请输入订单号以开通会员。'
             );
             
-            if (confirmed) {
-                // 记录支付请求
-                const paymentRecord = {
-                    userId: currentUser.id,
-                    username: currentUser.username,
-                    amount: 1,
-                    currency: 'USDT',
-                    network: 'BSC',
-                    address: PLATFORM_PAYMENT_ADDRESS,
-                    timestamp: new Date().toISOString(),
-                    status: 'pending' // pending, confirmed, failed
-                };
-                
-                // 保存到 localStorage（实际项目中应该发送到后端）
-                const payments = JSON.parse(localStorage.getItem('payment_records') || '[]');
-                payments.push(paymentRecord);
-                localStorage.setItem('payment_records', JSON.stringify(payments));
-                
-                // 关闭模态框
+            if (!confirmed) return;
+            
+            const orderId = prompt('请输入扫码支付成功后的订单号');
+            if (!orderId) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/api/membership/activate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    },
+                    body: JSON.stringify({ txHash: orderId, blockNumber: null })
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) { throw new Error(data.error || '激活失败'); }
                 closePaymentQRModal();
-                
-                // 显示成功提示
-                alert(
-                    '✅ 支付请求已提交！\n\n' +
-                    '我们会在确认您的支付后（通常1-5分钟）自动为您开通会员权限。\n\n' +
-                    '您可以继续使用平台的其他功能，会员权限开通后会有通知。\n\n' +
-                    '如有疑问，请联系客服。'
-                );
-                
-                // 可选：自动升级为会员（演示用）
-                // 实际项目中应该等待后端确认支付
-                if (confirm('【演示模式】是否立即开通会员权限？\n\n（实际项目中需要等待区块链确认）')) {
-                    upgradToMember();
-                }
+                isMember = true;
+                currentUser.isMember = true;
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                updateUserStatus();
+                renderPredictions();
+                alert('✅ 会员已开通');
+            } catch (e) {
+                alert('激活失败: ' + e.message);
             }
         }
         
@@ -3138,10 +3087,7 @@
                 renderPosts();
             }
             
-            // 渲染预测列表
-            if (typeof renderPredictions === 'function') {
-                renderPredictions();
-            }
+            loadPredictionsFromApi();
         });
     </script>
 </body>

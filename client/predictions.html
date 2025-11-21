@@ -266,7 +266,7 @@
 
           ${!currentUser ? `
             <div class="mt-3 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg text-sm text-yellow-300">
-              ⚠️ 请先连接钱包登录后投票
+              ⚠️ 请先登录后投票
             </div>
           ` : ''}
         </div>
@@ -311,7 +311,7 @@
 
     function showCreateForm() {
       if (!currentUser) {
-        alert('请先连接钱包登录');
+        alert('请先登录');
         return;
       }
 
