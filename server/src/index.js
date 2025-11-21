@@ -59,6 +59,20 @@ const connectDB = async () => {
   return cachedConnection;
 };
 
+// 数据库连接中间件 - 确保每个请求都有数据库连接
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error('数据库连接失败:', error);
+    res.status(503).json({ 
+      error: '数据库连接失败', 
+      message: error.message 
+    });
+  }
+});
+
 // 注册路由
 app.use('/api/auth', authRoutes);
 app.use('/api/membership', membershipRoutes);
