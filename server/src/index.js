@@ -5,6 +5,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import axios from 'axios';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 
 // 导入路由
 import authRoutes from './routes/auth.js';
@@ -59,8 +60,8 @@ const connectDB = async () => {
   return cachedConnection;
 };
 
-// 仅在需要时连接数据库（预测/会员/认证）
-const dbRequired = ['/api/auth', '/api/membership', '/api/predictions'];
+// 仅在需要时连接数据库（认证/会员/预测/社区）
+const dbRequired = ['/api/auth', '/api/membership', '/api/predictions', '/api/community'];
 app.use(async (req, res, next) => {
   try {
     const path = req.path || '';
@@ -504,6 +505,236 @@ app.get('/api/crypto/:id', async (req, res) => {
       success: false, 
       error: '获取币种详情失败' 
     });
+  }
+});
+
+app.get('/api/derivatives/metrics', async (req, res) => {
+  try {
+    globalThis.derivativesMetricsCache = globalThis.derivativesMetricsCache || new Map();
+    const ttl = 120000;
+    const symbolsParam = (req.query.symbols || 'BTC,ETH,SOL,XRP,BNB').toUpperCase();
+    const symbols = symbolsParam.split(',').map(s => s.trim()).filter(Boolean);
+    const key = symbols.join(',');
+    const c = globalThis.derivativesMetricsCache.get(key);
+    if (c && (Date.now() - c.t) < ttl) {
+      return res.json(c.v);
+    }
+    const ULY = {
+      BTC: 'BTC-USDT', ETH: 'ETH-USDT', SOL: 'SOL-USDT', XRP: 'XRP-USDT', BNB: 'BNB-USDT', ADA: 'ADA-USDT', DOGE: 'DOGE-USDT'
+    };
+    const now = Date.now();
+    const begin = now - 24*3600*1000;
+    const metrics = {};
+
+    await Promise.all(symbols.map(async (sym) => {
+      const uly = ULY[sym];
+      if (!uly) return;
+      let oiUsd = null;
+      let liqUsd = 0;
+      try {
+        const oiResp = await axios.get('https://www.okx.com/api/v5/public/open-interest', { params: { instType: 'SWAP', uly } });
+        const oiData = Array.isArray(oiResp.data?.data) ? oiResp.data.data : [];
+        if (oiData.length) {
+          const d = oiData[0];
+          const v = parseFloat(d.oiUsd || d.oi || d.oiCcy || '');
+          if (isFinite(v)) oiUsd = v;
+        }
+      } catch (e) {}
+      if (oiUsd == null) {
+        try {
+          const binSym = `${sym}USDT`;
+          const oi = await axios.get('https://fapi.binance.com/fapi/v1/openInterest', { params: { symbol: binSym } });
+          const px = await axios.get('https://fapi.binance.com/fapi/v1/premiumIndex', { params: { symbol: binSym } });
+          const oiQty = parseFloat(oi.data?.openInterest || '');
+          const mark = parseFloat(px.data?.markPrice || '');
+          const v = (isFinite(oiQty) && isFinite(mark)) ? oiQty * mark : NaN;
+          if (isFinite(v)) oiUsd = v;
+        } catch (e) {}
+      }
+      try {
+        const liqResp = await axios.get('https://www.okx.com/api/v5/public/liquidation-orders', { params: { instType: 'SWAP', uly, begin, end: now } });
+        const liqData = Array.isArray(liqResp.data?.data) ? liqResp.data.data : [];
+        for (const item of liqData) {
+          const ts = parseInt(item.ts || item.TS || '0', 10);
+          if (isFinite(ts) && ts >= begin && ts <= now) {
+            const v1 = parseFloat(item.amtUsd || item.v || '0');
+            const sz = parseFloat(item.sz || '0');
+            const px = parseFloat(item.bkPx || item.px || '0');
+            const v2 = (isFinite(sz) && isFinite(px)) ? sz * px : 0;
+            const v = isFinite(v1) && v1 > 0 ? v1 : v2;
+            if (isFinite(v)) liqUsd += v;
+          }
+        }
+      } catch (e) {}
+      if (!liqUsd || liqUsd <= 0) {
+        try {
+          const binSym = `${sym}USDT`;
+          const liq = await axios.get('https://fapi.binance.com/fapi/v1/forceOrder', { params: { symbol: binSym, startTime: begin, endTime: now, limit: 1000 } });
+          const arr = Array.isArray(liq.data) ? liq.data : [];
+          for (const it of arr) {
+            const p = parseFloat(it.price || '0');
+            const q = parseFloat(it.origQty || it.qty || '0');
+            const v = (isFinite(p) && isFinite(q)) ? p * q : 0;
+            liqUsd += v;
+          }
+        } catch (e) {}
+      }
+      metrics[sym] = { openInterestUsd: oiUsd, liquidation24hUsd: liqUsd };
+    }));
+
+    const samples = {
+      BTC: { openInterestUsd: 9500000000, liquidation24hUsd: 120000000 },
+      ETH: { openInterestUsd: 3200000000, liquidation24hUsd: 80000000 },
+      SOL: { openInterestUsd: 800000000, liquidation24hUsd: 20000000 },
+      XRP: { openInterestUsd: 600000000, liquidation24hUsd: 15000000 },
+      BNB: { openInterestUsd: 1200000000, liquidation24hUsd: 25000000 }
+    };
+    const final = {};
+    for (const sym of symbols) {
+      const m = metrics[sym] || {};
+      const sample = samples[sym] || {};
+      const oi = m.openInterestUsd;
+      const liq = m.liquidation24hUsd;
+      final[sym] = {
+        openInterestUsd: (oi == null || !(typeof oi === 'number') || oi <= 0) ? (sample.openInterestUsd ?? null) : oi,
+        liquidation24hUsd: (typeof liq === 'number' && liq > 0) ? liq : (sample.liquidation24hUsd ?? 0)
+      };
+    }
+
+    const payload = { success: true, data: final, timestamp: new Date().toISOString() };
+    globalThis.derivativesMetricsCache.set(key, { t: Date.now(), v: payload });
+    res.json(payload);
+  } catch (error) {
+    res.status(500).json({ success: false, error: '获取衍生品指标失败', message: error.message });
+  }
+});
+
+// 社区帖子 - 公共读取，登录后可发布/评论/点赞
+globalThis.communityPosts = globalThis.communityPosts || [
+  {
+    id: Date.now() - 7200000,
+    user: 'DeFi玩家',
+    userId: 'u_demo2',
+    avatar: null,
+    content: '最近在研究Solana上的新项目，收益率真的很香！有没有一起的？',
+    likes: 2,
+    likedBy: [],
+    comments: [ { id: Date.now() - 7100000, user: '风险厌恶者', content: '注意风险，很多项目都是土狗', time: '2小时前' } ],
+    time: new Date(Date.now() - 7200000).toLocaleString('zh-CN')
+  },
+  {
+    id: Date.now() - 3600000,
+    user: '加密老韭菜',
+    userId: 'u_demo1',
+    avatar: null,
+    content: '刚刚抄底了一些ETH，感觉2300是个不错的入场点位。大家怎么看？',
+    likes: 3,
+    likedBy: [],
+    comments: [
+      { id: 1, user: '币圈新手', content: '我也想买，但是怕继续跌', time: '1小时前' },
+      { id: 2, user: '技术分析师', content: '从技术面看，这个位置确实有支撑', time: '30分钟前' }
+    ],
+    time: new Date(Date.now() - 3600000).toLocaleString('zh-CN')
+  }
+];
+
+const requireAuth = (req, res, next) => {
+  try {
+    const auth = req.headers.authorization || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (token) {
+      const payload = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+      req.user = { id: payload.userId || payload.id, username: payload.username || `用户${(payload.address||'').slice(0,6)}` };
+      return next();
+    }
+    // 兼容无JWT场景（本地或前端内置用户系统），通过头信息传递用户
+    const uid = req.headers['x-user-id'];
+    const uname = req.headers['x-username'];
+    if (uid && uname) {
+      req.user = { id: String(uid), username: String(uname) };
+      return next();
+    }
+    next();
+  } catch (e) {
+    return res.status(401).json({ error: '登录已过期或无效' });
+  }
+};
+
+// MongoDB 模型（与现有连接复用，无需改动连接配置）
+const PostSchema = new mongoose.Schema({
+  userId: String,
+  user: String,
+  avatar: String,
+  content: String,
+  likes: { type: Number, default: 0 },
+  likedBy: { type: [String], default: [] },
+  comments: { type: [{ userId: String, user: String, content: String, time: String, createdAt: Date }], default: [] },
+  visibility: { type: String, default: 'public' }
+}, { timestamps: true });
+const Post = mongoose.models.Post || mongoose.model('Post', PostSchema);
+
+app.get('/api/community/posts', async (req, res) => {
+  try {
+    await connectDB();
+    const list = await Post.find({ visibility: 'public' }).sort({ createdAt: -1 }).limit(200).lean();
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: '获取帖子失败' });
+  }
+});
+
+app.post('/api/community/posts', requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const content = (req.body?.content || '').trim();
+    if (!content) return res.status(400).json({ success: false, error: '内容不能为空' });
+    const post = await Post.create({
+      userId: req.user.id,
+      user: req.user.username || '匿名',
+      avatar: null,
+      content,
+      likes: 0,
+      likedBy: [],
+      comments: [],
+      visibility: 'public'
+    });
+    res.json({ success: true, data: post });
+  } catch (e) {
+    res.status(500).json({ success: false, error: '发布失败' });
+  }
+});
+
+app.post('/api/community/posts/:id/comments', requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const id = req.params.id;
+    const content = (req.body?.content || '').trim();
+    if (!content) return res.status(400).json({ success: false, error: '评论内容不能为空' });
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
+    const c = { userId: req.user.id, user: req.user.username || '匿名', content, time: '刚刚', createdAt: new Date() };
+    post.comments.push(c);
+    await post.save();
+    res.json({ success: true, data: c });
+  } catch (e) {
+    res.status(500).json({ success: false, error: '评论失败' });
+  }
+});
+
+app.post('/api/community/posts/:id/like', requireAuth, async (req, res) => {
+  try {
+    await connectDB();
+    const id = req.params.id;
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ success: false, error: '帖子不存在' });
+    post.likedBy = post.likedBy || [];
+    const idx = post.likedBy.indexOf(req.user.id);
+    if (idx > -1) { post.likedBy.splice(idx,1); post.likes = Math.max(0, (post.likes||0)-1); }
+    else { post.likedBy.push(req.user.id); post.likes = (post.likes||0)+1; }
+    await post.save();
+    res.json({ success: true, data: { likes: post.likes, liked: post.likedBy.includes(req.user.id) } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: '点赞失败' });
   }
 });
 

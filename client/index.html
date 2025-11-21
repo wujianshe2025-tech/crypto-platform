@@ -197,12 +197,15 @@
                             <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">24h涨跌</th>
                             <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">市值</th>
                             <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">成交量</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">爆仓量(24h)</th>
+                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">持仓量(OI)</th>
                             <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">24h最高/最低</th>
                         </tr>
                     </thead>
                     <tbody id="crypto-table"></tbody>
                 </table>
             </div>
+            <div id="crypto-source-note" class="mt-6 text-sm text-gray-400">数据来源：OKX / Binance 公共接口</div>
             <div class="mt-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
                 <p class="text-sm text-green-300">✅ <strong>真实数据：</strong>价格数据来自 CoinGecko API，每30秒自动更新</p>
             </div>
@@ -1805,8 +1808,11 @@
                     marketCap: coin.market_cap / 1e9,
                     volume: coin.total_volume / 1e9,
                     high24h: coin.high_24h,
-                    low24h: coin.low_24h
+                    low24h: coin.low_24h,
+                    liquidationUsd24h: null,
+                    openInterestUsd: null
                 }));
+                await loadDerivativesMetrics();
                 renderCrypto();
             } catch (error) {
                 console.error('Error loading crypto prices:', error);
@@ -1864,6 +1870,14 @@
                         <div class="text-xs text-gray-500">24h成交量</div>
                     </td>
                     <td class="px-6 py-4 text-right">
+                        <div class="text-gray-300">${coin.liquidationUsd24h != null ? ('$' + (coin.liquidationUsd24h >= 1e9 ? (coin.liquidationUsd24h/1e9).toFixed(2) + 'B' : coin.liquidationUsd24h >= 1e6 ? (coin.liquidationUsd24h/1e6).toFixed(2) + 'M' : coin.liquidationUsd24h.toFixed(0))) : '--'}</div>
+                        <div class="text-xs text-gray-500">24h爆仓量</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <div class="text-gray-300">${coin.openInterestUsd != null ? ('$' + (coin.openInterestUsd >= 1e9 ? (coin.openInterestUsd/1e9).toFixed(2) + 'B' : coin.openInterestUsd >= 1e6 ? (coin.openInterestUsd/1e6).toFixed(2) + 'M' : coin.openInterestUsd.toFixed(0))) : '--'}</div>
+                        <div class="text-xs text-gray-500">持仓量</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
                         <div class="text-xs text-gray-400">
                             <div>高: <span class="text-green-400">$${coin.high24h.toLocaleString()}</span></div>
                             <div>低: <span class="text-red-400">$${coin.low24h.toLocaleString()}</span></div>
@@ -1886,10 +1900,22 @@
             return gradients[symbol] || 'from-gray-500 to-gray-600';
         }
 
-        // 自动刷新价格（每30秒）
-        setInterval(() => {
-            loadCryptoPrices();
-        }, 30000);
+        async function loadDerivativesMetrics() {
+            try {
+                const symbols = cryptoData.map(c => c.symbol).slice(0, 10).join(',');
+                const res = await fetch(`${API_URL}/api/derivatives/metrics?symbols=${encodeURIComponent(symbols)}`);
+                if (!res.ok) throw new Error('metrics fetch failed');
+                const json = await res.json();
+                const metrics = json.data || {};
+                cryptoData = cryptoData.map(c => {
+                    const m = metrics[c.symbol] || {};
+                    return { ...c, liquidationUsd24h: m.liquidation24hUsd ?? c.liquidationUsd24h, openInterestUsd: m.openInterestUsd ?? c.openInterestUsd };
+                });
+            } catch (e) {}
+        }
+
+        setInterval(() => { loadCryptoPrices(); }, 30000);
+        setInterval(() => { loadDerivativesMetrics().then(renderCrypto); }, 300000);
 
         // 渲染新闻 - 时间线式布局
         function renderNews(filter = '') {
@@ -1983,37 +2009,17 @@
         }
 
 
-        // 社区帖子数据（使用localStorage持久化）
-        let posts = JSON.parse(localStorage.getItem('community_posts') || '[]');
-        
-        // 如果没有数据，添加示例帖子
-        if (posts.length === 0) {
-            posts = [
-                {
-                    id: Date.now() - 3600000,
-                    user: '加密老韭菜',
-                    content: '刚刚抄底了一些ETH，感觉2300是个不错的入场点位。大家怎么看？',
-                    likes: 3,
-                    likedBy: [],
-                    comments: [
-                        { id: 1, user: '币圈新手', content: '我也想买，但是怕继续跌', time: '1小时前' },
-                        { id: 2, user: '技术分析师', content: '从技术面看，这个位置确实有支撑', time: '30分钟前' }
-                    ],
-                    time: new Date(Date.now() - 3600000).toLocaleString('zh-CN')
-                },
-                {
-                    id: Date.now() - 7200000,
-                    user: 'DeFi玩家',
-                    content: '最近在研究Solana上的新项目，收益率真的很香！有没有一起的？',
-                    likes: 2,
-                    likedBy: [],
-                    comments: [
-                        { id: 1, user: '风险厌恶者', content: '注意风险，很多项目都是土狗', time: '2小时前' }
-                    ],
-                    time: new Date(Date.now() - 7200000).toLocaleString('zh-CN')
-                }
-            ];
-            localStorage.setItem('community_posts', JSON.stringify(posts));
+        // 社区帖子数据（改为后端获取，公开可读）
+        let posts = [];
+        async function loadCommunityPosts() {
+            try {
+                const res = await fetch(`${API_URL}/api/community/posts`);
+                const json = await res.json();
+                posts = Array.isArray(json.data) ? json.data : [];
+                renderPosts();
+            } catch (e) {
+                renderPosts();
+            }
         }
 
         // 渲染帖子列表（带评论功能）
@@ -2085,7 +2091,7 @@
             `).join('');
         }
 
-        function createPost() {
+        async function createPost() {
             // 检查登录状态
             if (!isLoggedIn) {
                 alert('请先登录才能发帖');
@@ -2107,47 +2113,38 @@
                 return;
             }
             
-            const newPost = {
-                id: Date.now(),
-                user: currentUser.username,
-                userId: currentUser.id,
-                avatar: currentUser.avatar,
-                userType: userType,
-                content: content,
-                likes: 0,
-                likedBy: [],
-                comments: [],
-                time: new Date().toLocaleString('zh-CN')
-            };
-            
-            posts.unshift(newPost);
-            localStorage.setItem('community_posts', JSON.stringify(posts));
-            
-            textarea.value = '';
-            renderPosts();
-            
-            showToast('✅ 发布成功！');
+            try {
+                const res = await fetch(`${API_URL}/api/community/posts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id, 'x-username': currentUser.username },
+                    body: JSON.stringify({ content })
+                });
+                const json = await res.json();
+                if (!json.success) throw new Error(json.error || '发布失败');
+                posts.unshift(json.data);
+                textarea.value = '';
+                renderPosts();
+                showToast('✅ 发布成功！');
+            } catch (err) {
+                alert('发布失败，请稍后再试');
+            }
         }
 
-        function toggleLike(postId) {
+        async function toggleLike(postId) {
             const post = posts.find(p => p.id === postId);
             if (!post) return;
-            
-            if (!post.likedBy) post.likedBy = [];
-            
-            const userId = 'current-user';
-            const index = post.likedBy.indexOf(userId);
-            
-            if (index > -1) {
-                post.likedBy.splice(index, 1);
-                post.likes--;
-            } else {
-                post.likedBy.push(userId);
-                post.likes++;
-            }
-            
-            localStorage.setItem('community_posts', JSON.stringify(posts));
-            renderPosts();
+            if (!isLoggedIn) { showLoginModal(); return; }
+            try {
+                const res = await fetch(`${API_URL}/api/community/posts/${postId}/like`, {
+                    method: 'POST',
+                    headers: { 'x-user-id': currentUser.id, 'x-username': currentUser.username }
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    post.likes = json.data.likes;
+                    renderPosts();
+                }
+            } catch (e) {}
         }
 
         function toggleComments(postId) {
@@ -2163,7 +2160,7 @@
             }
         }
 
-        function addComment(postId) {
+        async function addComment(postId) {
             const input = document.getElementById(`comment-input-${postId}`);
             const content = input.value.trim();
             
@@ -2174,19 +2171,20 @@
             
             const post = posts.find(p => p.id === postId);
             if (!post) return;
-            
-            const newComment = {
-                id: Date.now(),
-                user: '我',
-                content: content,
-                time: '刚刚'
-            };
-            
-            post.comments.push(newComment);
-            localStorage.setItem('community_posts', JSON.stringify(posts));
-            
-            input.value = '';
-            renderPosts();
+            if (!isLoggedIn) { showLoginModal(); return; }
+            try {
+                const res = await fetch(`${API_URL}/api/community/posts/${postId}/comments`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id, 'x-username': currentUser.username },
+                    body: JSON.stringify({ content })
+                });
+                const json = await res.json();
+                if (json && json.success) {
+                    post.comments.push(json.data);
+                    input.value = '';
+                    renderPosts();
+                }
+            } catch (e) { alert('评论失败'); }
             
             setTimeout(() => {
                 const commentsDiv = document.getElementById(`comments-${postId}`);
@@ -3259,7 +3257,7 @@
         loadCryptoPrices();  // 加载真实价格数据
         loadNews();          // 加载真实新闻数据
         loadEconomicData();  // 加载真实经济数据
-        renderPosts();
+        loadCommunityPosts();
         renderPredictions();
         updatePlatformFund();
         showPage('market');
