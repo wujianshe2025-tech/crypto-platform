@@ -19,28 +19,33 @@ router.get('/', async (req, res) => {
   }
 });
 
-// 创建预测（需要会员）
+// 创建预测（普通用户可创建无奖预测，会员可创建有奖预测）
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     
-    if (!user.isMember) {
-      return res.status(403).json({ error: '只有会员才能创建预测' });
+    if (!user) {
+      return res.status(404).json({ error: '用户不存在' });
     }
 
     const { title, description, options, hasReward, rewardPerPerson, deadline } = req.body;
+    
+    // 如果要创建有奖预测，必须是会员
+    if (hasReward && !user.isMember) {
+      return res.status(403).json({ error: '只有会员才能创建有奖预测，请先升级会员' });
+    }
     
     const prediction = await Prediction.create({
       creatorId: req.user.userId,
       title,
       description,
       options: options.map(text => ({ text, votes: [] })),
-      hasReward,
-      rewardPerPerson: hasReward ? rewardPerPerson : 0,
+      hasReward: hasReward && user.isMember, // 只有会员才能创建有奖预测
+      rewardPerPerson: (hasReward && user.isMember) ? rewardPerPerson : 0,
       deadline: new Date(deadline)
     });
     
-    res.json({ success: true, data: prediction });
+    res.json({ success: true, data: prediction, message: '预测创建成功' });
   } catch (error) {
     console.error('创建预测失败:', error);
     res.status(500).json({ error: '创建预测失败', message: error.message });
