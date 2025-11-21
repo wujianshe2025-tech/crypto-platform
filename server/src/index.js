@@ -25,29 +25,59 @@ app.use(express.json());
 // 连接MongoDB - Serverless 优化
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/crypto-platform';
 
+// MongoDB 连接事件监听
+mongoose.connection.on('connecting', () => {
+  console.log('🔄 MongoDB 正在连接...');
+});
+
+mongoose.connection.on('connected', () => {
+  console.log('✅ MongoDB 已连接');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB 连接错误:', err.message);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('⚠️ MongoDB 已断开');
+});
+
 // Serverless 环境下的连接配置
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) {
     console.log('MongoDB 已经连接，状态:', mongoose.connection.readyState);
-    return;
+    return mongoose.connection;
+  }
+  
+  if (mongoose.connection.readyState === 2) {
+    console.log('MongoDB 正在连接中，等待...');
+    // 等待连接完成
+    return new Promise((resolve, reject) => {
+      mongoose.connection.once('connected', () => resolve(mongoose.connection));
+      mongoose.connection.once('error', reject);
+      setTimeout(() => reject(new Error('连接超时')), 30000);
+    });
   }
   
   try {
-    console.log('正在连接 MongoDB...');
+    console.log('开始连接 MongoDB...');
+    console.log('连接字符串前缀:', MONGODB_URI.substring(0, 30) + '...');
     await mongoose.connect(MONGODB_URI, {
-      serverSelectionTimeoutMS: 30000, // 增加到 30 秒
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
       maxPoolSize: 10,
     });
-    console.log('✅ MongoDB 已连接');
+    console.log('✅ MongoDB 连接成功');
+    return mongoose.connection;
   } catch (err) {
     console.error('❌ MongoDB 连接失败:', err.message);
-    console.error('连接字符串:', MONGODB_URI.replace(/:[^:@]+@/, ':****@')); // 隐藏密码
+    console.error('错误详情:', err.name, err.code);
+    throw err;
   }
 };
 
 // 立即连接
-connectDB();
+connectDB().catch(err => console.error('初始连接失败:', err.message));
 
 // 注册路由
 app.use('/api/auth', authRoutes);
@@ -71,10 +101,14 @@ app.get('/', (req, res) => {
 
 app.get('/health', async (req, res) => {
   // 确保连接
+  let connectionError = null;
   try {
     await connectDB();
+    // 等待一下看是否能连接成功
+    await new Promise(resolve => setTimeout(resolve, 2000));
   } catch (err) {
     console.error('健康检查时连接失败:', err);
+    connectionError = err.message;
   }
   
   const readyStates = {
@@ -89,7 +123,11 @@ app.get('/health', async (req, res) => {
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
     readyState: mongoose.connection.readyState,
     readyStateText: readyStates[mongoose.connection.readyState],
-    host: mongoose.connection.host || 'unknown'
+    host: mongoose.connection.host || 'unknown',
+    name: mongoose.connection.name || 'unknown',
+    hasConnectionString: !!MONGODB_URI,
+    connectionStringPrefix: MONGODB_URI ? MONGODB_URI.substring(0, 20) + '...' : 'none',
+    error: connectionError
   });
 });
 
