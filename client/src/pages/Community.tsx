@@ -221,27 +221,27 @@ export default function Community() {
               </div>
             )}
 
-            <div className="flex items-center space-x-6 text-gray-400 border-t border-gray-700 pt-4">
+            <div className="flex items-center gap-6 pt-4" style={{ borderTop: '1px solid #2d3748' }}>
               <button 
                 onClick={() => handleLike(post._id)}
                 disabled={!user}
-                className={`flex items-center space-x-2 hover:text-blue-400 transition disabled:opacity-50 disabled:cursor-not-allowed ${
-                  user && post.likedBy?.includes(user.id) ? 'text-blue-400' : ''
-                }`}
+                className="flex items-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed hover:text-red-400"
+                style={{ color: user && post.likedBy?.includes(user.id) ? '#ef4444' : '#9ca3af' }}
               >
-                <span>{user && post.likedBy?.includes(user.id) ? '👍' : '👍🏻'}</span>
-                <span>{post.likes || post.likedBy?.length || 0}</span>
+                <svg className="w-5 h-5" fill={user && post.likedBy?.includes(user.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span className="text-sm font-medium">{post.likes || post.likedBy?.length || 0}</span>
               </button>
               <button 
                 onClick={() => setShowComments(showComments === post._id ? null : post._id)}
-                className="flex items-center space-x-2 hover:text-blue-400 transition"
+                className="flex items-center gap-2 transition hover:text-blue-400"
+                style={{ color: '#9ca3af' }}
               >
-                <span>💬</span>
-                <span>{post.comments?.length || 0}</span>
-              </button>
-              <button className="flex items-center space-x-2 hover:text-blue-400 transition">
-                <span>🔗</span>
-                <span>分享</span>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="text-sm font-medium">{post.comments?.length || 0}</span>
               </button>
             </div>
 
