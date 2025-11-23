@@ -199,13 +199,13 @@ export default function Community() {
       <div className="space-y-6">
         {posts.map((post) => (
           <div key={post._id} className="bg-gray-800 rounded-lg p-6">
-            <div className="flex items-center mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold">
+            <div className="flex items-start mb-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center font-bold text-lg shadow-lg flex-shrink-0" style={{ backgroundColor: '#1e3a8a' }}>
                 {post.user[0]?.toUpperCase() || 'U'}
               </div>
-              <div className="ml-3">
-                <div className="font-semibold">{post.user}</div>
-                <div className="text-sm text-gray-400">
+              <div className="ml-4 flex-1">
+                <div className="font-semibold text-base">{post.user}</div>
+                <div className="text-xs text-gray-500 mt-0.5">
                   {post.time || getTimeAgo(post.createdAt)}
                 </div>
               </div>
@@ -251,13 +251,20 @@ export default function Community() {
                   <div className="space-y-3 mb-4">
                     {post.comments.map((comment, idx) => (
                       <div key={idx} className="bg-gray-700 rounded-lg p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-semibold text-sm">{comment.user}</span>
-                          <span className="text-xs text-gray-400">
-                            {comment.time || (comment.createdAt ? getTimeAgo(comment.createdAt.toString()) : '')}
-                          </span>
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-br from-gray-600 to-gray-800 rounded-md flex items-center justify-center font-semibold text-sm flex-shrink-0">
+                            {comment.user[0]?.toUpperCase() || 'U'}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-sm">{comment.user}</span>
+                              <span className="text-xs text-gray-500">
+                                {comment.time || (comment.createdAt ? getTimeAgo(comment.createdAt.toString()) : '')}
+                              </span>
+                            </div>
+                            <p className="text-gray-300 text-sm">{comment.content}</p>
+                          </div>
                         </div>
-                        <p className="text-gray-300 text-sm">{comment.content}</p>
                       </div>
                     ))}
                   </div>

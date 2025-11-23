@@ -205,18 +205,18 @@ export default function Predictions() {
       </div>
 
       {showCreate && (
-        <div className="bg-gray-800 rounded-lg p-6 mb-8">
+        <div style={{background: '#1a2332', border: '1px solid #1f2937'}} className="rounded-xl p-6 mb-8">
           <h2 className="text-xl font-semibold mb-4">创建新预测</h2>
           
           {!user && (
-            <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
-              <p className="text-yellow-300">⚠️ 请先登录</p>
+            <div style={{background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)'}} className="rounded-lg p-4 mb-4">
+              <p style={{color: '#fbbf24'}}>⚠️ 请先登录</p>
             </div>
           )}
 
           {user && !user.isMember && (
-            <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-4">
-              <p className="text-blue-300">
+            <div style={{background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)'}} className="rounded-lg p-4 mb-4">
+              <p style={{color: '#60a5fa'}}>
                 💡 <strong>提示：</strong>
                 <br />• 普通用户可以创建<strong>无奖预测</strong>
                 <br />• 升级会员后可以创建<strong>有奖预测</strong>
