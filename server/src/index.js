@@ -83,23 +83,83 @@ app.use('/api/predictions', predictionsRoutes);
 let NEWS_CACHE = { data: [], ts: 0 };
 
 const zhDict = {
+  // 加密货币名称
   'Bitcoin': '比特币', 'BTC': '比特币', 'Ethereum': '以太坊', 'ETH': '以太坊',
-  'Solana': 'Solana', 'BNB': '币安币', 'Ripple': '瑞波币', 'XRP': '瑞波币',
-  'Cardano': '艾达币', 'ADA': '艾达币', 'Polygon': 'Polygon', 'MATIC': 'Polygon',
-  'Avalanche': '雪崩', 'AVAX': '雪崩', 'Chainlink': 'Chainlink', 'LINK': 'Chainlink',
-  'Dogecoin': '狗狗币', 'DOGE': '狗狗币', 'USDT': 'USDT', 'USDC': 'USDC',
+  'Solana': 'Solana', 'SOL': 'Solana', 'BNB': '币安币', 'Binance': '币安',
+  'Ripple': '瑞波币', 'XRP': '瑞波币', 'Cardano': '艾达币', 'ADA': '艾达币',
+  'Polygon': 'Polygon', 'MATIC': 'Polygon', 'Avalanche': '雪崩', 'AVAX': '雪崩',
+  'Chainlink': 'Chainlink', 'LINK': 'Chainlink', 'Dogecoin': '狗狗币', 'DOGE': '狗狗币',
+  'USDT': 'USDT', 'Tether': 'Tether', 'USDC': 'USDC', 'Polkadot': '波卡', 'DOT': '波卡',
+  'Litecoin': '莱特币', 'LTC': '莱特币', 'Shiba Inu': '柴犬币', 'SHIB': '柴犬币',
+  'Uniswap': 'Uniswap', 'UNI': 'Uniswap', 'Cosmos': 'Cosmos', 'ATOM': 'Cosmos',
+  'Monero': '门罗币', 'XMR': '门罗币', 'Stellar': '恒星币', 'XLM': '恒星币',
+  'Tron': '波场', 'TRX': '波场', 'Hedera': 'Hedera', 'HBAR': 'Hedera',
+  
+  // 基础术语
   'cryptocurrency': '加密货币', 'crypto': '加密货币', 'blockchain': '区块链',
   'market': '市场', 'exchange': '交易所', 'wallet': '钱包', 'token': '代币',
-  'bullish': '利多', 'bearish': '利空', 'neutral': '中性',
+  'coin': '币', 'altcoin': '山寨币', 'stablecoin': '稳定币',
+  
+  // 市场术语
+  'bullish': '看涨', 'bearish': '看跌', 'neutral': '中性',
   'surge': '飙升', 'crash': '暴跌', 'rally': '反弹', 'drop': '下跌', 'rise': '上涨',
+  'fall': '下跌', 'falls': '下跌', 'gain': '上涨', 'gains': '上涨',
   'price': '价格', 'trading': '交易', 'volume': '成交量', 'liquidity': '流动性',
-  'decentralized': '去中心化', 'centralized': '中心化',
-  'regulation': '监管', 'approve': '批准', 'ban': '禁令', 'ETF': 'ETF',
+  'volatility': '波动性', 'momentum': '动能', 'trend': '趋势',
+  
+  // 技术术语
+  'decentralized': '去中心化', 'centralized': '中心化', 'DeFi': 'DeFi',
+  'NFT': 'NFT', 'smart contract': '智能合约', 'mining': '挖矿', 'miner': '矿工',
+  'staking': '质押', 'yield': '收益', 'farming': '流动性挖矿',
+  'protocol': '协议', 'network': '网络', 'node': '节点',
+  'consensus': '共识', 'proof of work': '工作量证明', 'proof of stake': '权益证明',
+  'layer 2': '二层网络', 'scaling': '扩容', 'gas fee': '燃料费',
+  
+  // 监管和机构
+  'regulation': '监管', 'approve': '批准', 'approval': '批准', 'ban': '禁令',
+  'ETF': 'ETF', 'SEC': '美国证监会', 'CFTC': '美国商品期货委员会',
+  'Federal Reserve': '美联储', 'Fed': '美联储', 'government': '政府',
+  'regulatory': '监管的', 'compliance': '合规', 'legal': '法律',
+  
+  // 投资术语
   'investment': '投资', 'investor': '投资者', 'analysis': '分析', 'report': '报告',
-  'Revolutionary': '革命性', 'Virtual Asset': '虚拟资产', 'Reforms': '改革',
-  'Raises': '融资', 'Series C': 'C轮', 'Series B': 'B轮', 'Series A': 'A轮',
-  'Arbitrage Strategy': '套利策略', 'Arbitrage': '套利', 'Annual Returns': '年度回报',
-  'Valuation': '估值', 'University': '大学', 'Endowments': '捐赠基金', 'Trade': '交易'
+  'portfolio': '投资组合', 'asset': '资产', 'fund': '基金', 'hedge fund': '对冲基金',
+  'institutional': '机构', 'retail': '散户', 'whale': '巨鲸',
+  'bull market': '牛市', 'bear market': '熊市', 'correction': '回调',
+  
+  // 公司和项目
+  'Coinbase': 'Coinbase', 'Kraken': 'Kraken', 'FTX': 'FTX',
+  'MicroStrategy': 'MicroStrategy', 'Tesla': '特斯拉', 'PayPal': 'PayPal',
+  'Square': 'Square', 'Grayscale': '灰度', 'BlackRock': '贝莱德',
+  
+  // 动作和事件
+  'launches': '推出', 'launch': '推出', 'unveils': '发布', 'unveil': '发布',
+  'announces': '宣布', 'announce': '宣布', 'reveals': '揭示', 'reveal': '揭示',
+  'introduces': '引入', 'introduce': '引入', 'releases': '发布', 'release': '发布',
+  'adopts': '采用', 'adopt': '采用', 'implements': '实施', 'implement': '实施',
+  'partnership': '合作', 'collaboration': '合作', 'merger': '合并', 'acquisition': '收购',
+  'hack': '黑客攻击', 'exploit': '漏洞利用', 'breach': '数据泄露',
+  'upgrade': '升级', 'update': '更新', 'fork': '分叉',
+  
+  // 融资相关
+  'raises': '融资', 'funding': '融资', 'Series C': 'C轮', 'Series B': 'B轮', 'Series A': 'A轮',
+  'seed round': '种子轮', 'valuation': '估值', 'venture capital': '风险投资',
+  
+  // 其他常见词
+  'sale': '出售', 'buy': '购买', 'sell': '出售', 'hold': '持有',
+  'long': '做多', 'short': '做空', 'leverage': '杠杆',
+  'profit': '利润', 'loss': '亏损', 'return': '回报', 'ROI': '投资回报率',
+  'high': '高点', 'low': '低点', 'all-time high': '历史新高', 'ATH': '历史新高',
+  'support': '支撑位', 'resistance': '阻力位', 'breakout': '突破',
+  'continues': '继续', 'continue': '继续', 'shows': '显示', 'show': '显示',
+  'early signs': '早期迹象', 'pullback': '回调', 'hashrate': '算力',
+  'hashprice': '算力价格', 'petahash': '拍哈希', 'per second': '每秒',
+  'dependence': '依赖', 'dependency': '依赖', 'revenue': '收入', 'model': '模式',
+  'innovates': '创新', 'reduce': '减少', 'lessen': '减少',
+  'strategic': '战略', 'shift': '转变', 'approach': '方法',
+  'represents': '代表', 'seeks': '寻求', 'adopting': '采用',
+  'new': '新', 'latest': '最新', 'recent': '最近', 'today': '今日',
+  'yesterday': '昨日', 'week': '周', 'month': '月', 'year': '年'
 };
 
 function zhTranslate(text) {
@@ -117,22 +177,81 @@ function zhTranslate(text) {
 function zhPhraseTranslate(text) {
   if (!text || typeof text !== 'string') return text || '';
   let t = text;
+  
   // 涨跌百分比
   t = t.replace(/([A-Za-z0-9\.\-]+)\s+Rises\s+(\d+(?:\.\d+)?)%/gi, '$1 上涨 $2%');
   t = t.replace(/([A-Za-z0-9\.\-]+)\s+Falls\s+(\d+(?:\.\d+)?)%/gi, '$1 下跌 $2%');
   t = t.replace(/([A-Za-z0-9\.\-]+)\s+Climbs\s+(\d+(?:\.\d+)?)%/gi, '$1 上涨 $2%');
   t = t.replace(/([A-Za-z0-9\.\-]+)\s+Drops\s+(\d+(?:\.\d+)?)%/gi, '$1 下跌 $2%');
+  t = t.replace(/([A-Za-z0-9\.\-]+)\s+Gains\s+(\d+(?:\.\d+)?)%/gi, '$1 上涨 $2%');
+  t = t.replace(/([A-Za-z0-9\.\-]+)\s+Loses\s+(\d+(?:\.\d+)?)%/gi, '$1 下跌 $2%');
+  
+  // 常见短语
   t = t.replace(/In\s+Selloff/gi, '在抛售中');
   t = t.replace(/sinks\s+below/gi, '跌破');
+  t = t.replace(/breaks\s+above/gi, '突破');
+  t = t.replace(/hits\s+new\s+high/gi, '创新高');
+  t = t.replace(/reaches\s+new\s+low/gi, '创新低');
+  t = t.replace(/all[- ]time\s+high/gi, '历史新高');
+  t = t.replace(/all[- ]time\s+low/gi, '历史新低');
+  
+  // 动作短语
   t = t.replace(/Launches\s+National/gi, '推出全国');
   t = t.replace(/Unveils/gi, '发布');
+  t = t.replace(/Announces/gi, '宣布');
+  t = t.replace(/Reveals/gi, '揭示');
+  t = t.replace(/Introduces/gi, '引入');
+  t = t.replace(/Releases/gi, '发布');
   t = t.replace(/Deliver[s]?/gi, '实现');
+  
+  // 技术术语
   t = t.replace(/Strategy/gi, '策略');
   t = t.replace(/Infrastructure/gi, '基础设施');
   t = t.replace(/Tokenization/gi, '代币化');
   t = t.replace(/Registry/gi, '登记处');
+  t = t.replace(/Hashrate/gi, '算力');
+  t = t.replace(/Hashprice/gi, '算力价格');
+  
+  // 市场相关
   t = t.replace(/Mixed\s+US\s+jobs\s+data/gi, '美国就业数据喜忧参半');
   t = t.replace(/dents\s+Fed\s+cut\s+hopes/gi, '削弱美联储降息预期');
+  t = t.replace(/Sale\s+Dependence/gi, '销售依赖');
+  t = t.replace(/Dependency/gi, '依赖性');
+  t = t.replace(/Revenue\s+Models/gi, '收入模式');
+  t = t.replace(/to\s+Reduce/gi, '以减少');
+  t = t.replace(/Innovates\s+to/gi, '创新以');
+  t = t.replace(/seeks\s+to\s+lessen/gi, '寻求减少');
+  t = t.replace(/by\s+adopting/gi, '通过采用');
+  t = t.replace(/represents\s+a\s+strategic\s+shift/gi, '代表战略转变');
+  t = t.replace(/revenue\s+approach/gi, '收入方式');
+  
+  // 常见句式
+  t = t.replace(/Innovates\s+to\s+Reduce/gi, '创新以减少');
+  t = t.replace(/Falls\s+to/gi, '跌至');
+  t = t.replace(/Shows\s+Early\s+Signs\s+of/gi, '显示早期迹象');
+  t = t.replace(/Pullback/gi, '回调');
+  t = t.replace(/as\s+(.+?)\s+Shows/gi, '随着$1显示');
+  t = t.replace(/hit\s+by/gi, '受到');
+  t = t.replace(/the\s+combination\s+of/gi, '结合了');
+  t = t.replace(/persistently\s+high/gi, '持续高企');
+  t = t.replace(/has\s+fallen\s+to\s+a\s+new\s+all[- ]time\s+low/gi, '已跌至历史新低');
+  t = t.replace(/below\s+\$(\d+)/gi, '低于 $$$1');
+  t = t.replace(/per\s+petahash\s+per\s+second/gi, '每拍哈希每秒');
+  t = t.replace(/\(PH\/s\)/gi, '(PH/s)');
+  
+  // 投资相关
+  t = t.replace(/Best\s+Cryptos\s+To\s+Invest\s+in/gi, '最佳投资加密货币');
+  t = t.replace(/Says/gi, '表示');
+  t = t.replace(/Is\s+on\s+Sale/gi, '正在打折');
+  t = t.replace(/has\s+just\s+stated\s+that/gi, '刚刚表示');
+  t = t.replace(/is\s+now\s+"on\s+sale"/gi, '现在"正在打折"');
+  t = t.replace(/that\s+is\s+something\s+investors\s+are\s+excited\s+about/gi, '这是投资者感到兴奋的事情');
+  t = t.replace(/His\s+perspective\s+on\s+buying\s+something\s+deep/gi, '他对深度买入的看法');
+  t = t.replace(/Michael\s+Saylor/gi, 'Michael Saylor');
+  
+  // 清理多余空格
+  t = t.replace(/\s+/g, ' ').trim();
+  
   return t;
 }
 app.get('/api/news', async (req, res) => {
