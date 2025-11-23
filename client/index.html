@@ -153,20 +153,100 @@
                 min-width: 44px;
             }
         }
+
+        .nav-item {
+            display: inline-flex;
+            align-items: center;
+            position: relative;
+            gap: 10px;
+            padding: 10px 14px;
+            border-radius: 12px;
+            color: #cbd5e1;
+            transition: background-color .25s ease, color .25s ease;
+        }
+        .nav-item .icon {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 20px;
+        }
+        .nav-item:hover { background-color: #374151; color: #e5e7eb; }
+        .nav-item.nav-active {
+            background-color: #1f3b77;
+            color: #ffffff;
+        }
+        .nav-item .indicator {
+            position: absolute;
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 4px;
+            height: 22px;
+            border-radius: 6px;
+            background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+            opacity: 0;
+            transition: opacity .25s ease;
+        }
+        .nav-item.nav-active .indicator { opacity: 1; }
+        .nav-logo svg { width: 28px; height: 28px; }
+
+        :root { --bg-body:#0b1220; --bg-panel:#111827; --bg-surface:#0f172a; --text-primary:#e5e7eb; --text-secondary:#9ca3af; --border-soft:#1f2937; }
+        .theme-dark { --bg-body:#0b1220; --bg-panel:#111827; --bg-surface:#0f172a; --text-primary:#e5e7eb; --text-secondary:#9ca3af; --border-soft:#1f2937; }
+        body.theme-dark { background-color: var(--bg-body); color: var(--text-primary); }
+        body.theme-dark .bg-gray-900, body.theme-dark .bg-gray-800, body.theme-dark .bg-gray-750, body.theme-dark .bg-gray-700 { background-color: var(--bg-panel) !important; }
+        body.theme-dark .border-gray-700, body.theme-dark .border-gray-600 { border-color: var(--border-soft) !important; }
+        body.theme-dark .text-gray-300, body.theme-dark .text-gray-400 { color: var(--text-secondary) !important; }
+        body.theme-dark .hover\:bg-gray-700:hover { background-color: var(--bg-surface) !important; }
     </style>
 </head>
-<body class="bg-gray-900 text-white">
+<body class="bg-gray-900 text-white theme-dark">
     <nav class="bg-gray-800 border-b border-gray-700">
         <div class="container mx-auto px-4">
             <div class="nav-container flex items-center justify-between h-16">
                 <div class="flex flex-col md:flex-row items-center md:space-x-8 w-full md:w-auto">
-                    <div class="nav-logo text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text" style="background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">🌪️ 追风观测</div>
-                    <div class="nav-buttons flex space-x-1 mt-2 md:mt-0">
-                        <button onclick="showPage('market', event)" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">📊 行情</button>
-                        <button onclick="showPage('news', event)" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">📰 新闻</button>
-                        <button onclick="showPage('calendar', event)" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">📅 日历</button>
-                        <button onclick="showPage('community', event)" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">💬 社区</button>
-                        <button onclick="showPage('predictions', event)" class="nav-btn px-4 py-2 rounded hover:bg-gray-700">🎯 预测</button>
+                    <div class="nav-logo text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text" style="background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        <span class="inline-flex items-center">
+                            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor">
+                                <defs>
+                                    <linearGradient id="twist" x1="0" y1="0" x2="1" y2="1">
+                                        <stop offset="0%" stop-color="#3b82f6"/>
+                                        <stop offset="100%" stop-color="#8b5cf6"/>
+                                    </linearGradient>
+                                </defs>
+                                <path d="M10 18c12 4 32 4 44 0" stroke="url(#twist)" stroke-width="3" stroke-linecap="round"/>
+                                <path d="M14 26c10 4 26 4 36 0" stroke="url(#twist)" stroke-width="3" stroke-linecap="round"/>
+                                <path d="M18 34c8 4 20 4 28 0" stroke="url(#twist)" stroke-width="3" stroke-linecap="round"/>
+                                <path d="M24 42c6 4 12 4 16 0" stroke="url(#twist)" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                            <span class="ml-2">追风观测</span>
+                        </span>
+                    </div>
+                    <div class="nav-buttons flex space-x-1 mt-2 md:mt-0 items-center">
+                        <button onclick="showPage('market', event)" class="nav-item">
+                            <span class="indicator"></span>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 3v18M7 13l4-4 4 6 6-10" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>市场行情</span>
+                        </button>
+                        <button onclick="showPage('calendar', event)" class="nav-item">
+                            <span class="indicator"></span>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 2v4M17 2v4M3 10h18M4 6h16v14H4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>数据日历</span>
+                        </button>
+                        <button onclick="showPage('news', event)" class="nav-item">
+                            <span class="indicator"></span>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16v14H4zM8 9h8M8 13h8M8 17h8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>智能情报</span>
+                        </button>
+                        <button onclick="showPage('predictions', event)" class="nav-item">
+                            <span class="indicator"></span>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v6l4 2-4 2v6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>预测市场</span>
+                        </button>
+                        <button onclick="showPage('community', event)" class="nav-item">
+                            <span class="indicator"></span>
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 15a4 4 0 01-4 4H7l-4 2V7a4 4 0 014-4h10a4 4 0 014 4z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>投资社区</span>
+                        </button>
+                        
                     </div>
                 </div>
                 <div id="user-status" class="mt-2 md:mt-0">
@@ -181,31 +261,34 @@
     <main class="container mx-auto px-4 py-8">
         <!-- 行情页面 -->
         <div id="market-page" class="page">
-            <div class="flex items-center justify-between mb-8">
-                <h1 class="text-3xl font-bold">实时行情</h1>
+            <div class="flex items-center justify-between mb-4">
+                <div>
+                    <h1 class="text-3xl font-bold">市场概览</h1>
+                    <div id="global-market-cap" class="text-sm text-gray-400 mt-1">Global Market Cap: --</div>
+                </div>
                 <div class="flex items-center space-x-2 text-sm text-gray-400">
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                    <span>实时更新中</span>
+                    <span>实时行情</span>
                 </div>
             </div>
-            <div class="bg-gray-800 rounded-lg overflow-hidden shadow-xl">
+            <div id="market-overview" class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6"></div>
+            <div class="bg-gray-800 rounded-xl overflow-hidden shadow-xl border border-gray-700">
+                <div class="px-6 py-3 border-b border-gray-700 text-gray-300 font-semibold">核心资产列表</div>
                 <table class="w-full">
-                    <thead class="bg-gradient-to-r from-gray-700 to-gray-800">
+                    <thead class="bg-gray-700/60">
                         <tr>
-                            <th class="px-6 py-4 text-left text-sm font-semibold text-gray-300">币种</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">最新价格</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">24h涨跌</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">市值</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">成交量</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">爆仓量(24h)</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">持仓量(OI)</th>
-                            <th class="px-6 py-4 text-right text-sm font-semibold text-gray-300">24h最高/最低</th>
+                            <th class="px-6 py-3 text-left text-sm font-semibold text-gray-300">资产 / 代码</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-300">最新价 (USD)</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-300">24H涨跌</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-300">合约持仓</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-300">爆仓数据</th>
+                            <th class="px-6 py-3 text-right text-sm font-semibold text-gray-300">趋势</th>
                         </tr>
                     </thead>
                     <tbody id="crypto-table"></tbody>
                 </table>
             </div>
-            <div id="crypto-source-note" class="mt-6 text-sm text-gray-400">数据来源：OKX / Binance 公共接口</div>
+            <div id="crypto-source-note" class="mt-6 text-sm text-gray-400">数据来源：CoinGecko / 衍生品统计聚合</div>
             <div class="mt-6 p-4 bg-green-900/20 border border-green-500/30 rounded-lg">
                 <p class="text-sm text-green-300">✅ <strong>真实数据：</strong>价格数据来自 CoinGecko API，每30秒自动更新</p>
             </div>
@@ -213,39 +296,14 @@
 
         <!-- 新闻页面 -->
         <div id="news-page" class="page hidden">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-3">
-                    <h1 class="text-2xl font-bold">新闻</h1>
+            <div class="flex items-center justify-between mb-6">
+                <div class="flex flex-col">
+                    <h1 class="text-2xl font-bold">智能情报</h1>
+                    <div class="text-sm text-gray-400">AI 驱动的市场情绪分析</div>
                 </div>
-                <div id="news-date-time" class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-300"></span>
-                    <span class="px-3 py-1 bg-blue-900/40 text-blue-400 rounded-md text-sm font-mono tabular-nums"></span>
-                </div>
+                <button onclick="refreshIntel()" class="px-4 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm font-semibold">同步</button>
             </div>
-            <!-- 顶部标签栏 -->
-            <div class="flex items-center space-x-6 mb-6 border-b border-gray-700">
-                <button onclick="filterNews('', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-blue-500 text-blue-500">
-                    今天
-                </button>
-                <button onclick="filterNews('realtime', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white">
-                    快讯
-                </button>
-                <button onclick="filterNews('important', event)" class="news-tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent text-gray-400 hover:text-white">
-                    深度
-                </button>
-            </div>
-
-            <!-- 新闻列表 - 时间线式布局 -->
-            <div class="bg-gray-800 rounded-lg">
-                <div id="news-list" class="divide-y divide-gray-700"></div>
-            </div>
-
-            <!-- 加载更多 -->
-            <div class="mt-6 text-center">
-                <button onclick="loadMoreNews()" class="px-6 py-2 bg-gray-700 rounded-lg hover:bg-gray-600 text-sm">
-                    加载更多
-                </button>
-            </div>
+            <div id="intel-list" class="space-y-4"></div>
         </div>
 
         <!-- 数据日历页面 -->
@@ -253,80 +311,33 @@
             <!-- 顶部筛选栏 -->
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center space-x-4">
-                    <h1 class="text-2xl font-bold">经济数据</h1>
+                    <h1 class="text-2xl font-bold">宏观经济日历</h1>
                     <div class="flex space-x-2">
                         <button onclick="filterCalendar('all', event)" class="calendar-filter-btn px-4 py-2 rounded bg-blue-600 text-sm">全部</button>
                         <button onclick="filterCalendar('important', event)" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">重要</button>
                         <button onclick="filterCalendar('today', event)" class="calendar-filter-btn px-4 py-2 rounded bg-gray-700 hover:bg-gray-600 text-sm">今天</button>
                     </div>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <button onclick="changeCalendarDate(-7)" class="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm">上一周</button>
-                    <button onclick="changeCalendarDate(-1)" class="p-2 bg-gray-700 rounded hover:bg-gray-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <div id="calendar-date-display" class="px-4 py-2 bg-gray-700 rounded text-sm font-semibold">2025-11-27</div>
-                    <button onclick="changeCalendarDate(1)" class="p-2 bg-gray-700 rounded hover:bg-gray-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                    <button onclick="changeCalendarDate(7)" class="px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm">下一周</button>
-                    <button onclick="setCalendarToday()" class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 text-sm font-semibold">今天</button>
-                </div>
+                <div class="text-xs text-gray-400 px-3 py-1 rounded bg-gray-800 border border-gray-700">UTC+8</div>
             </div>
 
-            <!-- 日期快捷选择 -->
-            <div class="mb-6 bg-gray-800 rounded-lg p-4">
-                <div id="calendar-week-tabs" class="flex space-x-2 overflow-x-auto"></div>
-            </div>
+            
 
-            <!-- 高级筛选 -->
-            <div class="mb-4 flex items-center space-x-4">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-400">重要性</span>
-                    <select id="calendar-importance-select" class="bg-gray-700 rounded px-2 py-1 text-sm" onchange="onCalendarImportanceChange(event)">
-                        <option value="1">全部</option>
-                        <option value="3">中度及以上</option>
-                        <option value="4">重要及以上</option>
-                        <option value="5">非常重要</option>
-                    </select>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-400">国家</span>
-                    <select id="calendar-country-select" class="bg-gray-700 rounded px-2 py-1 text-sm" onchange="onCalendarCountryChange(event)">
-                        <option value="全部">全部</option>
-                    </select>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm text-gray-400">类型</span>
-                    <select id="calendar-type-select" class="bg-gray-700 rounded px-2 py-1 text-sm" onchange="onCalendarTypeChange(event)">
-                        <option value="全部">全部</option>
-                        <option value="CPI">CPI</option>
-                        <option value="PPI">PPI</option>
-                        <option value="GDP">GDP</option>
-                        <option value="PMI">PMI</option>
-                        <option value="就业">就业</option>
-                        <option value="利率">利率</option>
-                        <option value="零售">零售</option>
-                        <option value="贸易">贸易</option>
-                    </select>
-                </div>
-            </div>
+            
 
-            <div id="calendar-day-summary" class="mb-4 bg-gray-800 rounded-lg p-4 text-sm text-gray-300"></div>
+            
 
             <!-- 数据列表 -->
             <div class="bg-gray-800 rounded-lg overflow-hidden">
                 <!-- 表头 -->
                 <div class="grid grid-cols-12 gap-4 px-6 py-3 bg-gray-700 text-sm font-semibold text-gray-300 border-b border-gray-600">
-                    <div class="col-span-1">时间</div>
-                    <div class="col-span-1">数据</div>
-                    <div class="col-span-3">事件</div>
-                    <div class="col-span-1 text-center">重要性</div>
+                    <div class="col-span-2">时间</div>
+                    <div class="col-span-2">区域</div>
+                    <div class="col-span-4">事件指标</div>
+                    <div class="col-span-1 text-center">影响</div>
+                    <div class="col-span-1 text-right">公布</div>
+                    <div class="col-span-1 text-right">预测</div>
                     <div class="col-span-1 text-right">前值</div>
-                    <div class="col-span-1 text-right">预测值</div>
-                    <div class="col-span-1 text-right">公布值</div>
-                    <div class="col-span-2 text-center">影响</div>
-                    <div class="col-span-1 text-center">提醒</div>
                 </div>
                 
                 <!-- 数据行 -->
@@ -345,11 +356,31 @@
 
         <!-- 社区页面 -->
         <div id="community-page" class="page hidden">
-            <h1 class="text-3xl font-bold mb-8">社区论坛</h1>
-            <div class="bg-gray-800 rounded-lg p-6 mb-8">
-                <textarea id="new-post" placeholder="分享你的观点..." class="w-full bg-gray-700 rounded-lg p-4 text-white resize-none" rows="4"></textarea>
-                <div class="flex justify-end mt-4">
-                    <button onclick="createPost()" class="px-6 py-2 bg-blue-600 rounded-lg hover:bg-blue-700">发布</button>
+            <div class="flex items-center mb-2">
+                <h1 class="text-3xl font-bold">投资社区</h1>
+            </div>
+            <div class="text-sm text-gray-400 mb-6">专业观点与深度讨论</div>
+            <div class="bg-gray-800 rounded-xl p-5 mb-8 border border-gray-700">
+                <div class="flex items-start space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold">我</div>
+                    <div class="flex-1">
+                        <textarea id="new-post" placeholder="你在想什么？" class="w-full bg-gray-700 rounded-xl p-4 text-white resize-none focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3"></textarea>
+                        <div id="new-post-image-preview" class="mt-3 hidden">
+                            <img id="new-post-image-el" src="" class="rounded-lg max-h-64 w-auto" alt="预览" />
+                        </div>
+                        <div class="flex items-center justify-between mt-4">
+                            <div class="flex items-center space-x-3">
+                                <button onclick="triggerImageUpload()" class="p-2 rounded bg-gray-700 hover:bg-gray-600" title="添加图片">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5zm3 10l3-3 2 2 4-4 4 4"/></svg>
+                                </button>
+                                <input id="new-post-image" type="file" accept="image/*" class="hidden" onchange="onNewPostImageChange(event)" />
+                            </div>
+                            <button onclick="createPost()" class="px-5 py-2 bg-blue-600 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+                                <span>发布观点</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div id="posts-list" class="space-y-6"></div>
@@ -481,7 +512,7 @@
                     <button onclick="toggleCreatePrediction()" class="px-6 py-3 bg-gray-700 rounded-lg hover:bg-gray-600">取消</button>
                 </div>
             </div>
-            <div id="predictions-list" class="space-y-6"></div>
+            <div id="predictions-list" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
         </div>
 
         <!-- 登录注册弹窗 -->
@@ -811,6 +842,12 @@
             'CA': '加拿大', 'AU': '澳大利亚', 'DE': '德国', 'FR': '法国', 'IT': '意大利',
             'ES': '西班牙', 'CH': '瑞士', 'NZ': '新西兰', 'KR': '韩国', 'IN': '印度'
         };
+        const currencyCodes = {
+            '美国': 'USD', '中国': 'CNY', '日本': 'JPY', '欧元区': 'EUR', '英国': 'GBP',
+            '加拿大': 'CAD', '澳大利亚': 'AUD', '德国': 'EUR', '法国': 'EUR', '意大利': 'EUR',
+            '瑞士': 'CHF', '西班牙': 'EUR', '新西兰': 'NZD', '韩国': 'KRW', '印度': 'INR'
+        };
+        function getCurrencyCode(name) { return currencyCodes[name] || ''; }
         
         // 经济事件中英文翻译词典
         const eventTranslations = {
@@ -1229,31 +1266,25 @@
                             '<span class="text-xs px-2 py-1 bg-blue-900/50 text-blue-400 rounded">待公布</span>';
                         
                         html += `
-                            <div class="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-750 transition cursor-pointer border-l-4 ${event.importance >= 3 ? 'border-yellow-500' : 'border-transparent'}">
-                                <div class="col-span-1 text-sm text-gray-400">${event.time}</div>
-                                <div class="col-span-1 text-sm">${event.country}</div>
-                                <div class="col-span-3 text-sm" onclick="openCalendarDetail(${event.id})">
-                                    <div class="font-semibold text-white">${event.event}</div>
-                                    ${statusBadge}
+                            <div class="grid grid-cols-12 gap-4 px-6 py-4 bg-gray-800 rounded-xl border border-gray-700 mb-3">
+                                <div class="col-span-2">
+                                    <div class="text-2xl font-extrabold tracking-wider">${event.time}</div>
+                                    <div class="text-xs text-gray-500">${event.dateObj.toISOString().split('T')[0]}</div>
+                                </div>
+                                <div class="col-span-2 flex items-center space-x-2">
+                                    <span class="px-2 py-1 bg-gray-700 rounded text-xs">${(function(name){const m={'美国':'US','欧元区':'EU','中国':'CN','日本':'JP','英国':'UK','澳大利亚':'AU','德国':'DE','加拿大':'CA'};return m[name]||'—';})(event.countryName)}</span>
+                                    <span class="text-gray-400">${event.country}</span>
+                                </div>
+                                <div class="col-span-4" onclick="openCalendarDetail(${event.id})">
+                                    <div class="font-semibold">${event.event}</div>
+                                    <div class="mt-1">${statusBadge}</div>
                                 </div>
                                 <div class="col-span-1 text-center">
-                                    <span class="text-yellow-400">${'⭐'.repeat(event.importance)}</span>
+                                    <div class="inline-flex items-center">${Array.from({length:5}).map((_,i)=>{const filled=i<Math.min(5,event.importance||0);const color=event.impact==='bearish'?(filled?'bg-red-500/70':'bg-gray-600'):(event.impact==='neutral'?(filled?'bg-gray-500':'bg-gray-700'):(filled?'bg-emerald-500/70':'bg-gray-600'));return `<span class=\"inline-block w-3 h-2 ${color} rounded-sm ml-1\"></span>`;}).join('')}</div>
                                 </div>
-                                <div class="col-span-1 text-right text-sm text-gray-300">${event.previous}</div>
-                                <div class="col-span-1 text-right text-sm text-gray-300">${event.forecast}</div>
-                                <div class="col-span-1 text-right text-sm font-semibold ${event.actual ? impactColor : 'text-gray-600'}">
-                                    ${event.actual || '--'}
-                                </div>
-                                <div class="col-span-2 text-center">
-                                    <span class="text-xs px-3 py-1 rounded ${event.impact === 'bullish' ? 'bg-green-900/30 text-green-400' : event.impact === 'bearish' ? 'bg-red-900/30 text-red-400' : 'bg-gray-700 text-gray-400'}">
-                                        ${impactText}
-                                    </span>
-                                </div>
-                                <div class="col-span-1 text-center">
-                                    <button class="text-gray-400 hover:text-yellow-400 transition" onclick="toggleReminder('${currentDateStr}_${event.id}')">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
-                                    </button>
-                                </div>
+                                <div class="col-span-1 text-right ${event.actual ? 'text-teal-400 font-semibold' : 'text-gray-400'}">${event.actual || '--'}</div>
+                                <div class="col-span-1 text-right text-gray-300">${event.forecast}</div>
+                                <div class="col-span-1 text-right text-gray-300">${event.previous}</div>
                             </div>
                         `;
                     });
@@ -1774,9 +1805,9 @@
         function showPage(page, event) {
             document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
             document.getElementById(page + '-page').classList.remove('hidden');
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('bg-blue-600'));
-            if (event && event.target) {
-                event.target.classList.add('bg-blue-600');
+            document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('nav-active'));
+            if (event && event.currentTarget) {
+                event.currentTarget.classList.add('nav-active');
             }
             
             // 切换到新闻页面时加载数据
@@ -1787,6 +1818,8 @@
                 loadPredictionsFromApi();
             }
         }
+
+        document.body.classList.add('theme-dark');
 
         // 加载真实加密货币数据
         async function loadCryptoPrices() {
@@ -1838,6 +1871,7 @@
         // 渲染行情表格
         function renderCrypto() {
             const tbody = document.getElementById('crypto-table');
+            renderOverviewCards();
             tbody.innerHTML = cryptoData.map((coin, i) => `
                 <tr class="border-t border-gray-700 hover:bg-gray-750 transition cursor-pointer">
                     <td class="px-6 py-4">
@@ -1862,26 +1896,15 @@
                         </div>
                     </td>
                     <td class="px-6 py-4 text-right">
-                        <div class="text-gray-300">$${coin.marketCap}B</div>
-                        <div class="text-xs text-gray-500">市值</div>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <div class="text-gray-300">$${coin.volume}B</div>
-                        <div class="text-xs text-gray-500">24h成交量</div>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <div class="text-gray-300">${coin.liquidationUsd24h != null ? ('$' + (coin.liquidationUsd24h >= 1e9 ? (coin.liquidationUsd24h/1e9).toFixed(2) + 'B' : coin.liquidationUsd24h >= 1e6 ? (coin.liquidationUsd24h/1e6).toFixed(2) + 'M' : coin.liquidationUsd24h.toFixed(0))) : '--'}</div>
-                        <div class="text-xs text-gray-500">24h爆仓量</div>
-                    </td>
-                    <td class="px-6 py-4 text-right">
                         <div class="text-gray-300">${coin.openInterestUsd != null ? ('$' + (coin.openInterestUsd >= 1e9 ? (coin.openInterestUsd/1e9).toFixed(2) + 'B' : coin.openInterestUsd >= 1e6 ? (coin.openInterestUsd/1e6).toFixed(2) + 'M' : coin.openInterestUsd.toFixed(0))) : '--'}</div>
                         <div class="text-xs text-gray-500">持仓量</div>
                     </td>
                     <td class="px-6 py-4 text-right">
-                        <div class="text-xs text-gray-400">
-                            <div>高: <span class="text-green-400">$${coin.high24h.toLocaleString()}</span></div>
-                            <div>低: <span class="text-red-400">$${coin.low24h.toLocaleString()}</span></div>
-                        </div>
+                        <div class="text-gray-300">${coin.liquidationUsd24h != null ? ('$' + (coin.liquidationUsd24h >= 1e9 ? (coin.liquidationUsd24h/1e9).toFixed(2) + 'B' : coin.liquidationUsd24h >= 1e6 ? (coin.liquidationUsd24h/1e6).toFixed(2) + 'M' : coin.liquidationUsd24h.toFixed(0))) : '--'}</div>
+                        <div class="text-xs text-gray-500">24H爆仓</div>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        ${getSparklineSvg(coin)}
                     </td>
                 </tr>
             `).join('');
@@ -1898,6 +1921,64 @@
                 'ADA': 'from-blue-600 to-indigo-700'
             };
             return gradients[symbol] || 'from-gray-500 to-gray-600';
+        }
+
+        function renderOverviewCards() {
+            const wrap = document.getElementById('market-overview');
+            if (!wrap) return;
+            const pick = (sym) => cryptoData.find(c => c.symbol === sym);
+            const list = [pick('DOGE'), pick('SOL'), pick('BTC')].filter(Boolean);
+            wrap.innerHTML = list.map(c => `
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 rounded-lg bg-gray-700 flex items-center justify-center text-white font-bold">${c.symbol[0]}</div>
+                            <div>
+                                <div class="text-sm text-gray-200">${c.name}</div>
+                                <div class="text-xs text-gray-500">${c.symbol}</div>
+                            </div>
+                        </div>
+                        <span class="text-xs px-2 py-1 rounded ${c.change>=0?'bg-green-900/30 text-green-400':'bg-red-900/30 text-red-400'}">${c.change>=0?'+':''}${c.change.toFixed(2)}%</span>
+                    </div>
+                    <div class="text-xl font-semibold">$${c.price.toLocaleString(undefined,{minimumFractionDigits:3,maximumFractionDigits:3})}</div>
+                </div>
+            `).join('');
+            // 更新总市值
+            const capEl = document.getElementById('global-market-cap');
+            if (capEl) {
+                const sum = (cryptoData || []).reduce((acc, c) => acc + (c.marketCap || 0), 0);
+                const text = sum > 0 ? `$${(sum/1000).toFixed(2)}T` : '--';
+                const avgChange = (cryptoData || []).reduce((acc, c) => acc + (c.change || 0), 0) / Math.max(1, (cryptoData||[]).length);
+                capEl.textContent = `Global Market Cap: ${text} ${isFinite(avgChange)?(avgChange>=0?`+${avgChange.toFixed(1)}%`:`${avgChange.toFixed(1)}%`):''}`;
+            }
+        }
+
+        function getSparklineSvg(coin) {
+            const pts = getSparklinePoints(coin);
+            const w = 120, h = 36;
+            const color = coin.change >= 0 ? '#34d399' : '#f87171';
+            const path = pts.map((p,i)=> `${i===0?'M':'L'} ${Math.round(p.x)} ${Math.round(p.y)}`).join(' ');
+            return `
+                <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" class="inline-block">
+                    <path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>
+                </svg>
+            `;
+        }
+
+        function getSparklinePoints(coin) {
+            const w = 120, h = 36, n = 16;
+            const base = coin.price || 1;
+            const dir = coin.change >= 0 ? 1 : -1;
+            let v = base;
+            const points = [];
+            for (let i=0;i<n;i++) {
+                const delta = (Math.random()*0.01*base) * dir * (Math.random()>0.6?2:1) * (i/n);
+                v = v + delta;
+                const x = (i/(n-1))*w;
+                const y = h - ((v-base)/(base*0.03))*h*0.5;
+                points.push({x, y: Math.min(Math.max(y, 2), h-2)});
+            }
+            return points;
         }
 
         async function loadDerivativesMetrics() {
@@ -1917,82 +1998,40 @@
         setInterval(() => { loadCryptoPrices(); }, 30000);
         setInterval(() => { loadDerivativesMetrics().then(renderCrypto); }, 300000);
 
-        // 渲染新闻 - 时间线式布局
+        // 渲染情报 - 列表式布局
         function renderNews(filter = '') {
             currentNewsFilter = filter;
             const filtered = filter ? newsData.filter(n => n.category === filter) : newsData;
-            const sentimentColors = { 
-                bullish: 'text-red-400', 
-                bearish: 'text-green-400', 
-                neutral: 'text-gray-400' 
-            };
-            const sentimentText = { 
-                bullish: '利空', 
-                bearish: '利多', 
-                neutral: '中性' 
-            };
-            const categoryIcons = { 
-                realtime: '⚡', 
-                important: '📌', 
-                breaking: '🔥' 
-            };
-            
-            const newsList = document.getElementById('news-list');
-            if (!newsList) return;
+            const sentimentText = { bullish: '利多', bearish: '利空', neutral: '稳定' };
+            const categoryText = { realtime: '实时', important: '重要', breaking: '突发' };
+            const list = document.getElementById('intel-list');
+            if (!list) return;
             if (!filtered.length) {
-                newsList.innerHTML = `<div class="p-8 text-center text-gray-400">暂无新闻数据，请点击上方“刷新”或稍后重试</div>`;
+                list.innerHTML = `<div class="p-8 text-center text-gray-400">暂无情报，请点击右上角“同步”</div>`;
                 return;
             }
-            
-            newsList.innerHTML = filtered.map((news, index) => `
-                <div class="flex hover:bg-gray-750 transition cursor-pointer group">
-                    <div class="w-24 flex-shrink-0 px-4 py-4 text-right">
-                        <div class="text-sm text-gray-300 font-mono tabular-nums">${news.time}</div>
-                    </div>
-                    
-                    <!-- 内容列 -->
-                    <div class="flex-1 px-6 py-4 border-l-2 ${index === 0 ? 'border-red-500' : 'border-gray-700'} group-hover:border-blue-500 transition">
-                        <!-- 标签和情绪 -->
-                        <div class="flex items-center space-x-2 mb-2">
-                            <span class="text-lg">${categoryIcons[news.category]}</span>
-                            <span class="text-xs px-2 py-1 rounded ${index === 0 ? 'bg-red-900/30 text-red-400' : 'bg-gray-700 text-gray-300'}">
-                                ${news.category === 'realtime' ? '快讯' : news.category === 'important' ? '深度' : '突发'}
-                            </span>
-                            <span class="text-xs ${sentimentColors[news.sentiment]}">
-                                ${sentimentText[news.sentiment]}
-                            </span>
+            list.innerHTML = filtered.slice(0, 12).map(news => {
+                const catClass = news.category==='breaking' ? 'bg-amber-900/40 text-amber-300 border border-amber-700/40' : news.category==='important' ? 'bg-blue-900/40 text-blue-300 border border-blue-700/40' : 'bg-gray-700 text-gray-300 border border-gray-600';
+                const senClass = news.sentiment==='bullish' ? 'bg-green-900/30 text-green-400 border border-green-700/30' : news.sentiment==='bearish' ? 'bg-red-900/30 text-red-400 border border-red-700/30' : 'bg-gray-700 text-gray-300 border border-gray-600';
+                return `
+                <div class="bg-gray-800 rounded-xl p-5 border border-gray-700 mb-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-xs px-3 py-1 rounded ${catClass}">${categoryText[news.category] || '情报'}</span>
+                            <span class="text-xs px-3 py-1 rounded ${senClass}">${sentimentText[news.sentiment]}</span>
                         </div>
-                        
-                        <!-- 标题 -->
-                        <h3 class="text-base font-semibold mb-2 text-white group-hover:text-blue-400 transition leading-relaxed">
-                            ${news.title}
-                        </h3>
-                        
-                        <!-- 内容摘要 -->
-                        <p class="text-sm text-gray-400 mb-3 leading-relaxed">
-                            ${news.content}
-                        </p>
-                        
-                        <!-- 底部信息 -->
-                        <div class="flex items-center space-x-4 text-xs text-gray-500">
-                            <span>📰 ${news.source}</span>
-                            <span>👁️ ${news.views.toLocaleString()}</span>
-                            ${news.comments ? `<span>💬 ${news.comments}</span>` : ''}
-                        </div>
+                        <span class="text-sm text-gray-400">${news.time}</span>
                     </div>
-                </div>
-            `).join('');
+                    <div class="mt-3">
+                        <h3 class="text-lg font-semibold">${news.title}</h3>
+                        <p class="text-sm text-gray-400 mt-2">${news.content}</p>
+                    </div>
+                    <div class="mt-3 text-xs text-gray-500">${news.source} · ID: ${news.id || '-'}</div>
+                </div>`;
+            }).join('');
         }
 
         function filterNews(category, event) {
-            document.querySelectorAll('.news-tab-btn').forEach(btn => {
-                btn.classList.remove('border-blue-500', 'text-blue-500');
-                btn.classList.add('border-transparent', 'text-gray-400');
-            });
-            if (event && event.target) {
-                event.target.classList.remove('border-transparent', 'text-gray-400');
-                event.target.classList.add('border-blue-500', 'text-blue-500');
-            }
             currentNewsFilter = category;
             currentNewsPage = 1;
             newsHasMore = true;
@@ -2008,6 +2047,13 @@
             loadNews(currentNewsPage + 1, currentNewsFilter);
         }
 
+        function refreshIntel() {
+            if (isLoadingNews) return;
+            currentNewsPage = 1;
+            newsHasMore = true;
+            loadNews(1, currentNewsFilter);
+        }
+
 
         // 社区帖子数据（改为后端获取，公开可读）
         let posts = [];
@@ -2018,6 +2064,7 @@
                 user: p.user || p.username || '匿名',
                 time: p.time || (p.createdAt ? formatCreatedAt(p.createdAt) : ''),
                 content: p.content || '',
+                images: Array.isArray(p.images) ? p.images : [],
                 likes: p.likes || 0,
                 likedBy: Array.isArray(p.likedBy) ? p.likedBy : [],
                 comments: Array.isArray(p.comments) ? p.comments : []
@@ -2042,7 +2089,7 @@
             postsContainer.innerHTML = posts.map(post => `
                 <div class="bg-gray-800 rounded-lg p-6">
                     <div class="flex items-center mb-4">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center font-bold">
+                        <div class="w-10 h-10 bg-blue-600 rounded-md flex items-center justify-center font-bold text-white">
                             ${(post.user || '?')[0].toUpperCase()}
                         </div>
                         <div class="ml-3">
@@ -2051,7 +2098,8 @@
                         </div>
                     </div>
                     <p class="text-gray-200 mb-4 whitespace-pre-wrap">${post.content}</p>
-                    <div class="flex items-center space-x-6 text-gray-400 border-t border-gray-700 pt-4">
+                    ${post.images && post.images.length ? `<div class="mb-4"><img src="${post.images[0]}" class="rounded-lg w-full max-h-[360px] object-cover" alt="post image" /></div>` : ''}
+                <div class="flex items-center space-x-6 text-gray-400 border-t border-gray-700 pt-4">
                         <button 
                             onclick="toggleLike('${post.id}')" 
                             class="flex items-center space-x-2 hover:text-blue-400 transition ${post.likedBy && post.likedBy.includes('current-user') ? 'text-blue-400' : ''}"
@@ -2075,11 +2123,16 @@
                         <div class="space-y-3 mb-4">
                             ${post.comments.map(comment => `
                                 <div class="bg-gray-700 rounded-lg p-3">
-                                    <div class="flex items-center justify-between mb-2">
-                                        <span class="font-semibold text-sm">${comment.user}</span>
-                                        <span class="text-xs text-gray-400">${comment.time}</span>
+                                    <div class="flex items-start">
+                                        <div class="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center font-bold text-white">${(comment.user||'?')[0].toUpperCase()}</div>
+                                        <div class="ml-3 flex-1">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="font-semibold text-sm">${comment.user}</span>
+                                                <span class="text-xs text-gray-400">${comment.time}</span>
+                                            </div>
+                                            <p class="text-gray-300 text-sm">${comment.content}</p>
+                                        </div>
                                     </div>
-                                    <p class="text-gray-300 text-sm">${comment.content}</p>
                                 </div>
                             `).join('')}
                         </div>
@@ -2103,6 +2156,25 @@
             `).join('');
         }
 
+        let newPostImageDataUrl = '';
+        function triggerImageUpload() {
+            const input = document.getElementById('new-post-image');
+            if (input) input.click();
+        }
+        function onNewPostImageChange(e) {
+            const file = e.target.files && e.target.files[0];
+            if (!file) { newPostImageDataUrl = ''; const pv = document.getElementById('new-post-image-preview'); if (pv) pv.classList.add('hidden'); return; }
+            if (file.size > 4 * 1024 * 1024) { alert('图片过大，限制4MB'); return; }
+            const reader = new FileReader();
+            reader.onload = () => {
+                newPostImageDataUrl = String(reader.result || '');
+                const prev = document.getElementById('new-post-image-preview');
+                const img = document.getElementById('new-post-image-el');
+                if (img) img.src = newPostImageDataUrl;
+                if (prev) prev.classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
         async function createPost() {
             // 检查登录状态
             if (!isLoggedIn) {
@@ -2126,26 +2198,21 @@
             }
             
             try {
-                // 使用 Base64 编码用户名，避免中文字符导致的 HTTP 头部编码问题
-                const encodedUsername = btoa(encodeURIComponent(currentUser.username));
-                
                 const res = await fetch(`${API_URL}/api/community/posts`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'x-user-id': currentUser.id, 
-                        'x-username': encodedUsername
-                    },
-                    body: JSON.stringify({ content })
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id, 'x-username': currentUser.username },
+                    body: JSON.stringify({ content, images: newPostImageDataUrl ? [newPostImageDataUrl] : [] })
                 });
                 const json = await res.json();
                 if (!json.success) throw new Error(json.error || '发布失败');
                 posts.unshift(normalizePost(json.data));
                 textarea.value = '';
+                newPostImageDataUrl = '';
+                const prev = document.getElementById('new-post-image-preview');
+                if (prev) prev.classList.add('hidden');
                 renderPosts();
                 showToast('✅ 发布成功！');
             } catch (err) {
-                console.error('发布失败:', err);
                 alert('发布失败，请稍后再试');
             }
         }
@@ -2155,24 +2222,16 @@
             if (!post) return;
             if (!isLoggedIn) { showLoginModal(); return; }
             try {
-                // 使用 Base64 编码用户名
-                const encodedUsername = btoa(encodeURIComponent(currentUser.username));
-                
                 const res = await fetch(`${API_URL}/api/community/posts/${postId}/like`, {
                     method: 'POST',
-                    headers: { 
-                        'x-user-id': currentUser.id, 
-                        'x-username': encodedUsername
-                    }
+                    headers: { 'x-user-id': currentUser.id, 'x-username': currentUser.username }
                 });
                 const json = await res.json();
                 if (json && json.success) {
                     post.likes = json.data.likes;
                     renderPosts();
                 }
-            } catch (e) {
-                console.error('点赞失败:', e);
-            }
+            } catch (e) {}
         }
 
         function toggleComments(postId) {
@@ -2201,16 +2260,9 @@
             if (!post) return;
             if (!isLoggedIn) { showLoginModal(); return; }
             try {
-                // 使用 Base64 编码用户名
-                const encodedUsername = btoa(encodeURIComponent(currentUser.username));
-                
                 const res = await fetch(`${API_URL}/api/community/posts/${postId}/comments`, {
                     method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'x-user-id': currentUser.id, 
-                        'x-username': encodedUsername
-                    },
+                    headers: { 'Content-Type': 'application/json', 'x-user-id': currentUser.id, 'x-username': currentUser.username },
                     body: JSON.stringify({ content })
                 });
                 const json = await res.json();
@@ -2219,10 +2271,7 @@
                     input.value = '';
                     renderPosts();
                 }
-            } catch (e) { 
-                console.error('评论失败:', e);
-                alert('评论失败'); 
-            }
+            } catch (e) { alert('评论失败'); }
             
             setTimeout(() => {
                 const commentsDiv = document.getElementById(`comments-${postId}`);
@@ -2304,114 +2353,50 @@
             };
         }
 
-        // 渲染预测
         function renderPredictions() {
-            // 更新预测页面的状态显示
             updatePredictionMemberStatus();
             updatePredictionNotice();
             updatePredictionStats();
-            
-            document.getElementById('predictions-list').innerHTML = predictions.map(pred => {
+
+            const container = document.getElementById('predictions-list');
+            container.innerHTML = predictions.map(pred => {
                 const total = pred.options.reduce((sum, opt) => sum + opt.votes, 0);
-                const userVoted = pred.options.some(opt => opt.voted);
-                
-                // 动态计算奖金池
-                let poolInfo = { totalPool: 0, winnerPool: 0, creatorReward: 0, platformFee: 0 };
+                const maxVotes = Math.max(0, ...pred.options.map(o => o.votes));
+                const deadlineText = pred.deadline || '进行中';
+                const creatorUpper = String(pred.creator || '匿名').toUpperCase();
+
+                let poolInfo = { totalPool: 0 };
                 if (pred.hasReward) {
                     poolInfo = calculateRewardPool(total, pred.rewardPerPerson);
                 }
-                
+
                 return `
-                    <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 border border-gray-700 shadow-xl hover:shadow-2xl transition">
-                        <div class="flex items-start justify-between mb-4">
-                            <div class="flex-1">
-                                <div class="flex items-center space-x-2 mb-2">
-                                    <span class="text-2xl">${pred.hasReward ? '💰' : '🎯'}</span>
-                                    <h3 class="text-xl font-bold">${pred.title}</h3>
-                                    ${!pred.hasReward ? '<span class="px-2 py-1 bg-gray-600 rounded text-xs">无奖预测</span>' : ''}
-                                </div>
-                                <p class="text-gray-400 text-sm">${pred.desc}</p>
-                            </div>
-                            <div class="ml-4 text-right">
-                                ${pred.hasReward ? `
-                                    <div class="bg-gradient-to-r from-green-600 to-teal-600 rounded-lg p-3 mb-2 shadow-lg">
-                                        <div class="text-xs text-green-100 mb-1">总奖池</div>
-                                        <div class="text-xl font-bold text-white">${poolInfo.totalPool.toFixed(1)} USDT</div>
-                                        <div class="text-xs text-green-100 mt-1">${pred.rewardPerPerson} USDT/人 × ${total}人</div>
-                                    </div>
-                                    <div class="bg-gray-700 rounded p-2 text-xs space-y-1">
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">胜出奖励</span>
-                                            <span class="text-green-400 font-semibold">${poolInfo.winnerPool.toFixed(1)}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">发起奖励</span>
-                                            <span class="text-yellow-400 font-semibold">${poolInfo.creatorReward.toFixed(2)}</span>
-                                        </div>
-                                        <div class="flex justify-between">
-                                            <span class="text-gray-400">激励基金</span>
-                                            <span class="text-blue-400 font-semibold">${poolInfo.platformFee.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                ` : `
-                                    <div class="bg-gray-700 rounded-lg p-3 mb-2">
-                                        <div class="text-sm text-gray-400">无奖金池</div>
-                                        <div class="text-xs text-gray-500 mt-1">纯预测投票</div>
-                                    </div>
-                                `}
-                                <div class="text-xs text-gray-400 flex items-center justify-end space-x-1 mt-2">
-                                    <span>⏰</span>
-                                    <span>${pred.deadline}</span>
-                                </div>
-                            </div>
+                    <div class="rounded-xl border border-gray-700 bg-gray-800 p-5">
+                        <div class="text-xs text-gray-400 mb-3 flex items-center space-x-4">
+                            <span class="inline-flex items-center space-x-1"><span>🧿</span><span>奖池: ${pred.hasReward ? `$${poolInfo.totalPool.toFixed(0)}` : '$0'}</span></span>
+                            <span>截止时间: ${deadlineText}</span>
                         </div>
-                        <div class="space-y-3 mb-4">
+                        <div class="text-lg font-semibold mb-4">${pred.title}</div>
+                        <div class="space-y-3">
                             ${pred.options.map((opt, i) => {
-                                const pct = total > 0 ? ((opt.votes / total) * 100).toFixed(1) : 0;
+                                const pct = total > 0 ? Math.round((opt.votes / total) * 100) : 0;
+                                const isLeader = opt.votes === maxVotes && maxVotes > 0;
+                                const barColor = isLeader ? 'bg-emerald-900/70' : 'bg-gray-700';
+                                const pctColor = isLeader ? 'text-emerald-400' : 'text-gray-400';
                                 return `
-                                    <div class="relative">
-                                        <button 
-                                            onclick="votePrediction('${pred.id}', ${i})" 
-                                            class="w-full bg-gray-700 hover:bg-gray-600 rounded-lg p-4 transition ${opt.voted ? 'ring-2 ring-blue-500' : ''}"
-                                        >
-                                            <div class="flex items-center justify-between mb-2">
-                                                <div class="flex items-center space-x-2">
-                                                    ${opt.voted ? '<span class="text-blue-400">✓</span>' : ''}
-                                                    <span class="font-semibold">${opt.text}</span>
-                                                </div>
-                                                <span class="text-blue-400 font-bold">${pct}%</span>
-                                            </div>
-                                            <div class="w-full bg-gray-600 rounded-full h-3 overflow-hidden">
-                                                <div class="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
-                                            </div>
-                                            <div class="text-xs text-gray-400 mt-2 flex items-center justify-between">
-                                                <span>${opt.votes} 人投票</span>
-                                                ${pred.hasReward ? 
-                                                    (isMember ? `<span class="text-green-400">💰 ${pred.rewardPerPerson} USDT</span>` : '<span class="text-yellow-400">🔒 会员可投票</span>') : 
-                                                    '<span class="text-blue-400">👆 点击投票</span>'}
-                                            </div>
-                                        </button>
-                                    </div>
+                                    <button onclick=\"votePrediction('${pred.id}', ${i})\" class="relative w-full rounded-md overflow-hidden bg-gray-800 border border-gray-700">
+                                        <div class="absolute inset-y-0 left-0 ${barColor}" style="width:${pct}%"></div>
+                                        <div class="relative flex items-center justify-between px-4 py-3">
+                                            <span class="text-sm">${opt.text}</span>
+                                            <span class="text-sm ${pctColor}">${pct}%</span>
+                                        </div>
+                                    </button>
                                 `;
                             }).join('')}
                         </div>
-                        ${userVoted ? `
-                            <div class="bg-green-900/20 border border-green-500/30 rounded-lg p-3 mb-4">
-                                <div class="flex items-center justify-between text-sm">
-                                    <div class="flex items-center space-x-2 text-green-400">
-                                        <span>✓</span>
-                                        <span>你已投票！${pred.hasReward ? '预测准确将获得奖励' : ''}</span>
-                                    </div>
-                                    ${pred.hasReward ? `<span class="text-yellow-400 font-semibold">已投入 ${pred.rewardPerPerson} USDT</span>` : ''}
-                                </div>
-                            </div>
-                        ` : ''}
-                        <div class="flex items-center justify-between text-sm text-gray-400 border-t border-gray-700 pt-4">
-                            <div class="flex items-center space-x-4">
-                                <span>👤 ${pred.creator}</span>
-                                <span>📊 ${total} 人参与</span>
-                            </div>
-                            <button class="text-blue-400 hover:text-blue-300">查看详情 →</button>
+                        <div class="mt-5 border-t border-gray-700 pt-3 text-xs flex items-center justify-between text-gray-400">
+                            <span class="inline-flex items-center space-x-2"><span>👤</span><span>${total} 参与</span></span>
+                            <span>BY ${creatorUpper}</span>
                         </div>
                     </div>
                 `;
@@ -3338,6 +3323,7 @@
         
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {
+            
             // 检查登录状态
             checkLoginStatus();
             

@@ -21,7 +21,7 @@ const io = new Server(httpServer, {
 });
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // 连接MongoDB - Serverless 优化
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/crypto-platform';
@@ -674,6 +674,7 @@ const PostSchema = new mongoose.Schema({
   user: String,
   avatar: String,
   content: String,
+  images: { type: [String], default: [] },
   likes: { type: Number, default: 0 },
   likedBy: { type: [String], default: [] },
   comments: { type: [{ userId: String, user: String, content: String, time: String, createdAt: Date }], default: [] },
@@ -700,6 +701,7 @@ app.get('/api/community/posts', async (req, res) => {
 app.post('/api/community/posts', requireAuth, async (req, res) => {
   try {
     const content = (req.body?.content || '').trim();
+    const images = Array.isArray(req.body?.images) ? req.body.images.filter(x => typeof x === 'string').slice(0, 4) : [];
     if (!content) return res.status(400).json({ success: false, error: '内容不能为空' });
     try {
       await connectDB();
@@ -708,6 +710,7 @@ app.post('/api/community/posts', requireAuth, async (req, res) => {
         user: req.user.username || '匿名',
         avatar: null,
         content,
+        images,
         likes: 0,
         likedBy: [],
         comments: [],
@@ -721,6 +724,7 @@ app.post('/api/community/posts', requireAuth, async (req, res) => {
         user: req.user.username || '匿名',
         avatar: null,
         content,
+        images,
         likes: 0,
         likedBy: [],
         comments: [],
